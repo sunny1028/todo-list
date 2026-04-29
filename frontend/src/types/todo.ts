@@ -5,11 +5,19 @@ export interface Todo {
   priority: 'low' | 'medium' | 'high'
   tags: string
   completed: boolean
+  archived: boolean
   due_date: string | null
   list_id: number
   sort_order: number
   created_at: string
   updated_at: string
+}
+
+export interface Subtask {
+  id: number
+  todo_id: number
+  title: string
+  completed: boolean
 }
 
 export interface List {
@@ -43,6 +51,7 @@ export interface UpdateTodoRequest {
   priority?: string
   tags?: string
   completed?: boolean
+  archived?: boolean
   due_date?: string | null
   list_id?: number
 }

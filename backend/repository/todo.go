@@ -10,14 +10,19 @@ func FindAll(listID uint, status, priority, tag, search string) ([]models.Todo, 
 	var todos []models.Todo
 	q := database.DB.Model(&models.Todo{})
 
-	if listID > 0 {
-		q = q.Where("list_id = ?", listID)
+	if status == "archived" {
+		q = q.Where("archived = ?", true)
+	} else {
+		q = q.Where("archived = ?", false)
+		if status == "completed" {
+			q = q.Where("completed = ?", true)
+		} else if status == "active" {
+			q = q.Where("completed = ?", false)
+		}
 	}
 
-	if status == "completed" {
-		q = q.Where("completed = ?", true)
-	} else if status == "active" {
-		q = q.Where("completed = ?", false)
+	if listID > 0 {
+		q = q.Where("list_id = ?", listID)
 	}
 
 	if priority != "" {

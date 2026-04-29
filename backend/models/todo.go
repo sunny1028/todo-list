@@ -9,6 +9,7 @@ type Todo struct {
 	Priority    string    `json:"priority" gorm:"default:'medium'"`
 	Tags        string    `json:"tags" gorm:"default:''"`
 	Completed   bool      `json:"completed" gorm:"default:false"`
+	Archived    bool      `json:"archived" gorm:"default:false"`
 	DueDate     DateOnly  `json:"due_date"`
 	ListID      uint      `json:"list_id" gorm:"default:0"`
 	SortOrder   int       `json:"sort_order" gorm:"default:0"`

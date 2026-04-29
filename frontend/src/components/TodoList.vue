@@ -15,7 +15,7 @@ const priorityFilter = ref('')
 const tagFilter = ref('')
 const sortBy = ref('created')
 const showClearConfirm = ref(false)
-const selectedAll = ref(false)
+const showMore = ref(false)
 const searchInput = ref<HTMLInputElement | null>(null)
 
 const filterStatus = computed(() => (route.query.filter as string) || '')
@@ -23,14 +23,16 @@ const filterStatus = computed(() => (route.query.filter as string) || '')
 function filteredTodos() {
   let list = [...store.todos]
 
-  if (filterStatus.value === 'active') list = list.filter((t) => !t.completed)
+  if (filterStatus.value === 'active') list = list.filter((t) => !t.completed && !t.archived)
   else if (filterStatus.value === 'completed') list = list.filter((t) => t.completed)
+  else if (filterStatus.value === 'archived') list = list.filter((t) => t.archived)
+  else list = list.filter((t) => !t.archived)
 
   if (priorityFilter.value) list = list.filter((t) => t.priority === priorityFilter.value)
   if (tagFilter.value) list = list.filter((t) => t.tags.includes(tagFilter.value))
   if (search.value.trim()) {
     const q = search.value.trim().toLowerCase()
-    list = list.filter((t) => t.title.toLowerCase().includes(q))
+    list = list.filter((t) => t.title.toLowerCase().includes(q) || t.description.toLowerCase().includes(q))
   }
 
   switch (sortBy.value) {
@@ -55,6 +57,7 @@ function filteredTodos() {
 }
 
 const completedCount = computed(() => store.todos.filter((t) => t.completed).length)
+const archivedCount = computed(() => store.todos.filter((t) => t.archived).length)
 
 const allTags = computed(() => {
   const set = new Set<string>()
@@ -67,56 +70,19 @@ const allTags = computed(() => {
 async function handleClearCompleted() {
   await store.clearCompleted()
   showClearConfirm.value = false
+  showMore.value = false
 }
 
-function toggleSelectAll() {
-  selectedAll.value = !selectedAll.value
-  store.todos.forEach((t) => {
-    if (t.completed !== selectedAll.value) {
-      store.toggle(t.id)
-    }
-  })
-}
-
-// Drag & drop
-const dragIndex = ref<number | null>(null)
-
-function onDragStart(idx: number) {
-  dragIndex.value = idx
-}
-
-function onDragOver(e: DragEvent) {
-  e.preventDefault()
-}
-
-async function onDrop(idx: number) {
-  if (dragIndex.value === null || dragIndex.value === idx) return
-  const list = filteredTodos()
-  const ids = list.map((t) => t.id)
-  const [moved] = ids.splice(dragIndex.value, 1)
-  ids.splice(idx, 0, moved)
-  // Optimistic UI update
-  store.todos = ids.map((id) => store.todos.find((t) => t.id === id)!).filter(Boolean)
-  await store.reorder(ids)
-  dragIndex.value = null
-}
-
-// Keyboard shortcuts
 function onKeydown(e: KeyboardEvent) {
   if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
     e.preventDefault()
     searchInput.value?.focus()
   }
-  if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
-    e.preventDefault()
-    // Focus the first input in TodoForm
-    const input = document.querySelector<HTMLInputElement>('input[placeholder="添加待办事项…"]')
-    input?.focus()
-  }
   if (e.key === 'Escape') {
     search.value = ''
     priorityFilter.value = ''
     tagFilter.value = ''
+    showMore.value = false
     document.activeElement instanceof HTMLElement && document.activeElement.blur()
   }
 }
@@ -135,7 +101,6 @@ onUnmounted(() => {
   <div>
     <TodoForm @created="() => {}" />
 
-    <!-- Filters -->
     <div class="flex gap-2 mb-3 flex-wrap">
       <input
         ref="searchInput"
@@ -144,92 +109,58 @@ onUnmounted(() => {
         placeholder="搜索… (Ctrl+K)"
         class="flex-1 min-w-[120px] px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm outline-none focus:border-indigo-400 bg-white dark:bg-gray-900 dark:text-gray-100 transition-colors"
       />
-      <select
-        v-model="priorityFilter"
-        class="px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-gray-900 dark:text-gray-100 outline-none"
-      >
+      <select v-model="priorityFilter" class="px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-gray-900 dark:text-gray-100 outline-none">
         <option value="">全部优先级</option>
         <option value="high">高</option>
         <option value="medium">中</option>
         <option value="low">低</option>
       </select>
-      <select
-        v-model="tagFilter"
-        class="px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-gray-900 dark:text-gray-100 outline-none"
-      >
+      <select v-model="tagFilter" class="px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-gray-900 dark:text-gray-100 outline-none">
         <option value="">全部标签</option>
         <option v-for="tag in allTags" :key="tag" :value="tag">{{ tag }}</option>
       </select>
-      <select
-        v-model="sortBy"
-        class="px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-gray-900 dark:text-gray-100 outline-none"
-      >
+      <select v-model="sortBy" class="px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-gray-900 dark:text-gray-100 outline-none">
         <option value="created">最新</option>
         <option value="priority">优先级</option>
         <option value="due">截止日期</option>
       </select>
-    </div>
 
-    <!-- Batch actions -->
-    <div v-if="store.todos.length > 0" class="flex items-center justify-between mb-3 text-xs text-gray-400 dark:text-gray-500">
-      <span>{{ store.todos.filter(t => !t.completed).length }} 项未完成 / 共 {{ store.todos.length }} 项</span>
-      <div class="flex gap-2">
-        <button
-          @click="toggleSelectAll"
-          class="px-3 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        >
-          {{ selectedAll ? '取消全选' : '全选' }}
+      <!-- More menu -->
+      <div class="relative">
+        <button @click="showMore = !showMore" class="px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
         </button>
-        <button
-          @click="store.downloadExport('json')"
-          class="px-3 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        >
-          导出 JSON
-        </button>
-        <button
-          @click="store.downloadExport('csv')"
-          class="px-3 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        >
-          导出 CSV
-        </button>
-        <button
-          v-if="completedCount > 0"
-          @click="showClearConfirm = true"
-          class="px-3 py-1 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
-        >
-          清除已完成 ({{ completedCount }})
-        </button>
+        <div v-if="showMore" class="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg py-1 z-10 min-w-[130px]">
+          <button @click="store.downloadExport('json'); showMore = false" class="w-full text-left px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">导出 JSON</button>
+          <button @click="store.downloadExport('csv'); showMore = false" class="w-full text-left px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">导出 CSV</button>
+          <button v-if="completedCount > 0" @click="showClearConfirm = true" class="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors">清除已完成</button>
+        </div>
       </div>
     </div>
 
-    <div v-if="store.loading">
-      <Skeleton :count="5" />
+    <div v-if="store.todos.length > 0" class="flex items-center justify-between mb-3 text-xs text-gray-400 dark:text-gray-500">
+      <span>
+        {{ store.todos.filter(t => !t.completed && !t.archived).length }} 项未完成 / 共 {{ store.todos.filter(t => !t.archived).length }} 项
+        <span v-if="archivedCount > 0" class="text-gray-300 dark:text-gray-600"> · {{ archivedCount }} 归档</span>
+      </span>
     </div>
+
+    <div v-if="store.loading"><Skeleton :count="5" /></div>
     <div v-else-if="store.error" class="text-center py-10 text-red-400 text-sm">{{ store.error }}</div>
     <div v-else-if="filteredTodos().length === 0" class="text-center py-16 text-gray-300 dark:text-gray-700 text-sm italic">
-      暂无待办，添加第一个吧！
+      暂无待办
     </div>
 
     <TransitionGroup v-else name="list" tag="div">
-      <div
-        v-for="(todo, idx) in filteredTodos()"
-        :key="todo.id"
-        draggable="true"
-        @dragstart="onDragStart(idx)"
-        @dragover="onDragOver"
-        @drop="onDrop(idx)"
-      >
+      <div v-for="todo in filteredTodos()" :key="todo.id">
         <TodoItem :todo="todo" />
       </div>
     </TransitionGroup>
 
-    <!-- Keyboard hints -->
     <div class="mt-8 text-center text-[11px] text-gray-300 dark:text-gray-700 hidden md:block">
       <kbd class="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-400">Ctrl+N</kbd> 新建
-      &nbsp;
-      <kbd class="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-400">Ctrl+K</kbd> 搜索
-      &nbsp;
-      <kbd class="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-400">Esc</kbd> 清除筛选
+      <kbd class="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-400 ml-2">Ctrl+K</kbd> 搜索
+      <kbd class="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-400 ml-2">?</kbd> 快捷键
     </div>
   </div>
 
@@ -243,16 +174,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.list-enter-active,
-.list-leave-active {
-  transition: all 0.3s ease;
-}
-.list-enter-from {
-  opacity: 0;
-  transform: translateY(-12px);
-}
-.list-leave-to {
-  opacity: 0;
-  transform: translateX(20px);
-}
+.list-enter-active, .list-leave-active { transition: all 0.3s ease; }
+.list-enter-from { opacity: 0; transform: translateY(-12px); }
+.list-leave-to { opacity: 0; transform: translateX(20px); }
 </style>

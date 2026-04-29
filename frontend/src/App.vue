@@ -1,8 +1,30 @@
 <script setup lang="ts">
+import { onMounted, onUnmounted, ref } from 'vue'
 import AppHeader from './components/layout/AppHeader.vue'
 import AppNav from './components/layout/AppNav.vue'
 import Sidebar from './components/layout/Sidebar.vue'
 import ToastContainer from './components/ui/ToastContainer.vue'
+import ShortcutPanel from './components/ui/ShortcutPanel.vue'
+import { useNotifications } from './composables/useNotifications'
+
+useNotifications()
+
+const showShortcuts = ref(false)
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === '?' && !isInputFocused()) {
+    e.preventDefault()
+    showShortcuts.value = !showShortcuts.value
+  }
+}
+
+function isInputFocused() {
+  const el = document.activeElement
+  return el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement
+}
+
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 </script>
 
 <template>
@@ -16,5 +38,6 @@ import ToastContainer from './components/ui/ToastContainer.vue'
     </div>
     <AppNav />
     <ToastContainer />
+    <ShortcutPanel v-if="showShortcuts" @close="showShortcuts = false" />
   </div>
 </template>

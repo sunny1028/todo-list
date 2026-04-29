@@ -83,6 +83,30 @@ func ReorderTodos(ids []uint) error {
 	return nil
 }
 
+func ArchiveTodo(id uint) (*models.Todo, error) {
+	todo, err := repository.FindByID(id)
+	if err != nil {
+		return nil, errors.New("todo not found")
+	}
+	todo.Archived = true
+	if err := repository.Update(todo); err != nil {
+		return nil, err
+	}
+	return todo, nil
+}
+
+func UnarchiveTodo(id uint) (*models.Todo, error) {
+	todo, err := repository.FindByID(id)
+	if err != nil {
+		return nil, errors.New("todo not found")
+	}
+	todo.Archived = false
+	if err := repository.Update(todo); err != nil {
+		return nil, err
+	}
+	return todo, nil
+}
+
 func DeleteTodo(id uint) error {
 	return repository.Delete(id)
 }

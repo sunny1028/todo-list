@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Todo, CreateTodoRequest, UpdateTodoRequest, Stats } from '../types/todo'
+import type { Todo, CreateTodoRequest, UpdateTodoRequest, Stats, Subtask } from '../types/todo'
 import * as todoApi from '../api/todos'
 import { useToast } from './toast'
 
@@ -60,24 +60,74 @@ export const useTodos = defineStore('todos', () => {
   }
 
   async function toggle(id: number) {
-    const toast = useToast()
     try {
       const res = await todoApi.toggleTodo(id)
       const idx = todos.value.findIndex((t) => t.id === id)
       if (idx !== -1) todos.value[idx] = res.data
     } catch {
-      toast.show('操作失败', 'error')
+      useToast().show('操作失败', 'error')
     }
   }
 
-  async function removeTodo(id: number) {
+  // Undo delete — 10 second delay
+  const pendingDeletes = new Map<number, ReturnType<typeof setTimeout>>()
+
+  function removeTodo(id: number) {
+    const toast = useToast()
+    const todo = todos.value.find((t) => t.id === id)
+    if (!todo) return
+
+    // Optimistic removal
+    todos.value = todos.value.filter((t) => t.id !== id)
+
+    const timer = setTimeout(async () => {
+      pendingDeletes.delete(id)
+      try {
+        await todoApi.deleteTodo(id)
+        toast.show('已删除', 'success')
+      } catch {
+        todos.value.push(todo)
+        toast.show('删除失败', 'error')
+      }
+    }, 10000)
+
+    pendingDeletes.set(id, timer)
+    toast.show('已删除，可撤销', 'info')
+  }
+
+  function undoDelete(id: number) {
+    const timer = pendingDeletes.get(id)
+    if (timer) {
+      clearTimeout(timer)
+      pendingDeletes.delete(id)
+      // Re-fetch to restore
+      fetchTodos()
+      useToast().show('已撤销', 'success')
+    }
+  }
+
+  const hasPendingDelete = (id: number) => pendingDeletes.has(id)
+
+  async function archiveTodo(id: number) {
     const toast = useToast()
     try {
-      await todoApi.deleteTodo(id)
-      todos.value = todos.value.filter((t) => t.id !== id)
-      toast.show('已删除', 'success')
+      await todoApi.archiveTodo(id)
+      const idx = todos.value.findIndex((t) => t.id === id)
+      if (idx !== -1) todos.value[idx]!.archived = true
+      toast.show('已归档', 'success')
     } catch {
-      toast.show('删除失败', 'error')
+      toast.show('归档失败', 'error')
+    }
+  }
+
+  async function unarchiveTodo(id: number) {
+    const toast = useToast()
+    try {
+      await todoApi.unarchiveTodo(id)
+      todos.value = todos.value.filter((t) => t.id !== id)
+      toast.show('已恢复', 'success')
+    } catch {
+      toast.show('恢复失败', 'error')
     }
   }
 
@@ -123,5 +173,13 @@ export const useTodos = defineStore('todos', () => {
     return res.data
   }
 
-  return { todos, loading, error, currentListId, setList, fetchTodos, addTodo, editTodo, toggle, removeTodo, clearCompleted, reorder, downloadExport, fetchStats }
+  // Subtask helpers (inline for simplicity)
+  async function fetchSubtasks(todoId: number): Promise<Subtask[]> {
+    const res = await todoApi.listSubtasks(todoId)
+    return res.data
+  }
+
+  return { todos, loading, error, currentListId, setList, fetchTodos, addTodo, editTodo, toggle,
+    removeTodo, undoDelete, hasPendingDelete, archiveTodo, unarchiveTodo, clearCompleted,
+    reorder, downloadExport, fetchStats, fetchSubtasks }
 })

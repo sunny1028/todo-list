@@ -164,6 +164,34 @@ func ExportTodos(c *gin.Context) {
 	c.JSON(http.StatusOK, todos)
 }
 
+func ArchiveTodo(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	todo, err := services.ArchiveTodo(uint(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, todo)
+}
+
+func UnarchiveTodo(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	todo, err := services.UnarchiveTodo(uint(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, todo)
+}
+
 func Stats(c *gin.Context) {
 	listID := parseListID(c)
 	stats := services.GetStats(listID)
