@@ -6,6 +6,8 @@ import TodoForm from './TodoForm.vue'
 import TodoItem from './TodoItem.vue'
 import Skeleton from './ui/Skeleton.vue'
 import ConfirmDialog from './ui/ConfirmDialog.vue'
+import { useToast } from '../stores/toast'
+import * as api from '../api/todos'
 
 const store = useTodos()
 const route = useRoute()
@@ -17,6 +19,28 @@ const sortBy = ref('created')
 const showClearConfirm = ref(false)
 const showMore = ref(false)
 const searchInput = ref<HTMLInputElement | null>(null)
+const fileInput = ref<HTMLInputElement | null>(null)
+
+async function handleImport(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  const text = await file.text()
+  const format = file.name.endsWith('.csv') ? 'csv' : 'json'
+  try {
+    await api.importTodos(format, text, store.currentListId || undefined)
+    store.fetchTodos()
+    useToast().show(`导入成功`, 'success')
+  } catch {
+    useToast().show('导入失败', 'error')
+  }
+  input.value = ''
+  showMore.value = false
+}
+
+function triggerImport() {
+  fileInput.value?.click()
+}
 
 const filterStatus = computed(() => (route.query.filter as string) || '')
 
@@ -133,6 +157,9 @@ onUnmounted(() => {
         <div v-if="showMore" class="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg py-1 z-10 min-w-[130px]">
           <button @click="store.downloadExport('json'); showMore = false" class="w-full text-left px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">导出 JSON</button>
           <button @click="store.downloadExport('csv'); showMore = false" class="w-full text-left px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">导出 CSV</button>
+          <div class="border-t border-gray-100 dark:border-gray-700 my-1" />
+          <button @click="triggerImport" class="w-full text-left px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">导入 (JSON/CSV)</button>
+          <div class="border-t border-gray-100 dark:border-gray-700 my-1" />
           <button v-if="completedCount > 0" @click="showClearConfirm = true" class="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors">清除已完成</button>
         </div>
       </div>
@@ -163,6 +190,8 @@ onUnmounted(() => {
       <kbd class="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-400 ml-2">?</kbd> 快捷键
     </div>
   </div>
+
+  <input ref="fileInput" type="file" accept=".json,.csv" class="hidden" @change="handleImport" />
 
   <ConfirmDialog
     :open="showClearConfirm"

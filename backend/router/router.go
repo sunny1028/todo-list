@@ -24,6 +24,7 @@ func Setup(corsOrigin string) *gin.Engine {
 		api.POST("/todos", handlers.CreateTodo)
 		api.GET("/todos/stats", handlers.Stats)
 		api.GET("/todos/export", handlers.ExportTodos)
+		api.POST("/todos/import", handlers.ImportTodos)
 		api.PUT("/todos/reorder", handlers.ReorderTodos)
 		api.GET("/todos/:id", handlers.GetTodo)
 		api.PUT("/todos/:id", handlers.UpdateTodo)

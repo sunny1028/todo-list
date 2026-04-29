@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"todo-list/backend/models"
@@ -190,6 +191,113 @@ func UnarchiveTodo(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, todo)
+}
+
+func ImportTodos(c *gin.Context) {
+	format := c.DefaultQuery("format", "json")
+	listID := parseListID(c)
+
+	input, err := c.GetRawData()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "cannot read body"})
+		return
+	}
+
+	count := 0
+	if format == "csv" {
+		lines := splitLines(string(input))
+		if len(lines) < 2 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "CSV must have header row"})
+			return
+		}
+		for _, line := range lines[1:] {
+			fields := splitCSV(line)
+			if len(fields) >= 1 && fields[0] != "" {
+				todo := models.Todo{Title: fields[0], ListID: listID}
+				if len(fields) >= 2 {
+					todo.Description = fields[1]
+				}
+				if len(fields) >= 3 {
+					todo.Priority = fields[2]
+				}
+				if len(fields) >= 4 {
+					todo.Tags = fields[3]
+				}
+				services.CreateTodo(&todo)
+				count++
+			}
+		}
+	} else {
+		var todos []models.Todo
+		if err := json.Unmarshal(input, &todos); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
+			return
+		}
+		for i := range todos {
+			if todos[i].Title != "" {
+				if listID > 0 {
+					todos[i].ListID = listID
+				}
+				services.CreateTodo(&todos[i])
+				count++
+			}
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"imported": count})
+}
+
+func splitString(s string, sep byte) []string {
+	var result []string
+	current := ""
+	for _, c := range []byte(s) {
+		if c == sep {
+			result = append(result, current)
+			current = ""
+		} else {
+			current += string(c)
+		}
+	}
+	result = append(result, current)
+	return result
+}
+
+func splitLines(s string) []string {
+	parts := splitString(s, '\n')
+	var result []string
+	for _, p := range parts {
+		p = splitString(p, '\r')[0]
+		if p != "" {
+			result = append(result, p)
+		}
+	}
+	return result
+}
+
+func splitCSV(s string) []string {
+	var result []string
+	current := ""
+	inQuote := false
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if inQuote {
+			if c == '"' {
+				inQuote = false
+			} else {
+				current += string(c)
+			}
+		} else {
+			if c == '"' {
+				inQuote = true
+			} else if c == ',' {
+				result = append(result, current)
+				current = ""
+			} else {
+				current += string(c)
+			}
+		}
+	}
+	result = append(result, current)
+	return result
 }
 
 func Stats(c *gin.Context) {

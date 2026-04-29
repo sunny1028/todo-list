@@ -34,6 +34,12 @@ export function reorderTodos(ids: number[]) {
 export function exportTodos(format: 'json' | 'csv', listId?: number) {
   return api.get('/todos/export', { params: { format, list_id: listId }, responseType: 'blob' })
 }
+export function importTodos(format: 'json' | 'csv', content: string, listId?: number) {
+  return api.post('/todos/import', content, {
+    params: { format, list_id: listId },
+    headers: { 'Content-Type': format === 'json' ? 'application/json' : 'text/plain' },
+  })
+}
 export function getStats(listId?: number) {
   return api.get<Stats>('/todos/stats', { params: { list_id: listId } })
 }
