@@ -38,8 +38,9 @@ jobs:
           TAG=${{ github.ref_name }}
           ENDPOINT=${{ secrets.OSS_ENDPOINT }}
           BUCKET=${{ secrets.OSS_BUCKET_NAME }}
-          aws s3 cp backend-${TAG}.tar.gz s3://${BUCKET}/images/todo-deploy/backend-${TAG}.tar.gz --endpoint-url https://${ENDPOINT} --acl public-read
-          aws s3 cp frontend-${TAG}.tar.gz s3://${BUCKET}/images/todo-deploy/frontend-${TAG}.tar.gz --endpoint-url https://${ENDPOINT} --acl public-read
+          OSS_URL="https://${BUCKET}.${ENDPOINT}"
+          aws s3 cp backend-${TAG}.tar.gz s3://${BUCKET}/images/todo-deploy/backend-${TAG}.tar.gz --endpoint-url ${OSS_URL} --acl public-read
+          aws s3 cp frontend-${TAG}.tar.gz s3://${BUCKET}/images/todo-deploy/frontend-${TAG}.tar.gz --endpoint-url ${OSS_URL} --acl public-read
 
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.9.1
