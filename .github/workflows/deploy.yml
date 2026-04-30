@@ -1,0 +1,74 @@
+name: Deploy
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        run: |
+          docker build -t todo-backend:${{ github.ref_name }} ./backend
+
+      - name: Build frontend image
+        run: |
+          docker build -t todo-frontend:${{ github.ref_name }} ./frontend
+
+      - name: Save and compress images
+        run: |
+          docker save todo-backend:${{ github.ref_name }} | gzip > backend.tar.gz
+          docker save todo-frontend:${{ github.ref_name }} | gzip > frontend.tar.gz
+          ls -lh *.tar.gz
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.1
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Upload images to server
+        run: |
+          scp -o StrictHostKeyChecking=accept-new -P 20004 backend.tar.gz frontend.tar.gz root@218.4.33.10:/tmp/
+
+      - name: Deploy on server
+        run: |
+          ssh -o StrictHostKeyChecking=accept-new -p 20004 root@218.4.33.10 << 'DEPLOY'
+            set -e
+            TAG=${{ github.ref_name }}
+
+            docker network create todo-net 2>/dev/null || true
+
+            docker stop todo-backend 2>/dev/null || true
+            docker stop todo-frontend 2>/dev/null || true
+            docker rm todo-backend 2>/dev/null || true
+            docker rm todo-frontend 2>/dev/null || true
+
+            gunzip -c /tmp/backend.tar.gz | docker load
+            gunzip -c /tmp/frontend.tar.gz | docker load
+
+            docker run -d --name todo-backend \
+              --network todo-net \
+              -p 8078:8080 \
+              -v /data/work/sunbo/todo-list:/app/data \
+              -e PORT=8080 \
+              -e DB_PATH=/app/data/todo.db \
+              -e CORS_ORIGIN=* \
+              --restart unless-stopped \
+              todo-backend:${TAG}
+
+            docker run -d --name todo-frontend \
+              --network todo-net \
+              -p 8079:80 \
+              --restart unless-stopped \
+              todo-frontend:${TAG}
+
+            rm -f /tmp/backend.tar.gz /tmp/frontend.tar.gz
+            docker ps
+          DEPLOY
