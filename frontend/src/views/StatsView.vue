@@ -29,6 +29,10 @@ function tagBarWidth(count: number, max: number) {
 
 <template>
   <div v-if="stats" class="max-w-2xl mx-auto">
+    <router-link to="/" class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-indigo-500 transition-colors mb-3">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      返回列表
+    </router-link>
     <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-6">统计面板</h2>
 
     <!-- Overview cards -->

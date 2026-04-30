@@ -41,7 +41,11 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4" style="min-height: calc(100vh - 180px)">
+  <router-link to="/" class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-indigo-500 transition-colors mb-3">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    返回列表
+  </router-link>
+  <div class="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4" style="min-height: calc(100vh - 200px)">
     <div v-for="col in columns" :key="col.id"
       class="flex-shrink-0 w-64 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-800 p-3"
       @dragover="onDragOver" @drop="onDrop(col)">

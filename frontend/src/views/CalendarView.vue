@@ -62,6 +62,10 @@ onMounted(load)
 
 <template>
   <div class="max-w-lg mx-auto">
+    <router-link to="/" class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-indigo-500 transition-colors mb-3">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      返回列表
+    </router-link>
     <div class="flex items-center justify-between mb-4">
       <button @click="prevMonth" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 px-2">&larr;</button>
       <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ monthLabel }}</h2>
