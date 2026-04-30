@@ -39,6 +39,8 @@ jobs:
           ENDPOINT=${{ secrets.OSS_ENDPOINT }}
           BUCKET=${{ secrets.OSS_BUCKET_NAME }}
           OSS_URL="https://${BUCKET}.${ENDPOINT}"
+          # OSS does not support AWS chunked encoding
+          aws configure set default.s3.payload_signing_enabled false
           aws s3 cp backend-${TAG}.tar.gz s3://${BUCKET}/images/todo-deploy/backend-${TAG}.tar.gz --endpoint-url ${OSS_URL} --acl public-read
           aws s3 cp frontend-${TAG}.tar.gz s3://${BUCKET}/images/todo-deploy/frontend-${TAG}.tar.gz --endpoint-url ${OSS_URL} --acl public-read
 
