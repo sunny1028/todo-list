@@ -72,8 +72,19 @@ export const useTodos = defineStore('todos', () => {
   // Undo delete — 10 second delay
   const pendingDeletes = new Map<number, ReturnType<typeof setTimeout>>()
 
+  function flushPendingDeletes() {
+    pendingDeletes.forEach((timer, id) => {
+      clearTimeout(timer)
+      fetch(`/api/todos/${id}`, { method: 'DELETE', keepalive: true })
+    })
+    pendingDeletes.clear()
+  }
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', flushPendingDeletes)
+  }
+
   function removeTodo(id: number) {
-    const toast = useToast()
     const todo = todos.value.find((t) => t.id === id)
     if (!todo) return
 
@@ -84,15 +95,15 @@ export const useTodos = defineStore('todos', () => {
       pendingDeletes.delete(id)
       try {
         await todoApi.deleteTodo(id)
-        toast.show('已删除', 'success')
+        useToast().show('已删除', 'success')
       } catch {
         todos.value.push(todo)
-        toast.show('删除失败', 'error')
+        useToast().show('删除失败', 'error')
       }
     }, 10000)
 
     pendingDeletes.set(id, timer)
-    toast.show('已删除，可撤销', 'info')
+    useToast().show('已删除', 'success', { label: '撤销', onClick: () => undoDelete(id) })
   }
 
   function undoDelete(id: number) {

@@ -212,7 +212,7 @@ function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t =>
   <ConfirmDialog
     :open="showConfirm"
     title="删除待办"
-    :message="`确定要删除「${todo.title}」吗？（10秒内可撤销）`"
+    :message="`确定要删除「${todo.title}」吗？`"
     @confirm="handleDelete(); showConfirm = false"
     @cancel="showConfirm = false"
   />

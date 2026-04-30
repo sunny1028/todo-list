@@ -5,6 +5,8 @@ export interface Toast {
   id: number
   message: string
   type: 'success' | 'error' | 'info'
+  action?: { label: string; onClick: () => void }
+  duration?: number
 }
 
 let nextId = 0
@@ -12,10 +14,11 @@ let nextId = 0
 export const useToast = defineStore('toast', () => {
   const toasts = ref<Toast[]>([])
 
-  function show(message: string, type: Toast['type'] = 'info') {
+  function show(message: string, type: Toast['type'] = 'info', action?: Toast['action'], duration?: number) {
     const id = ++nextId
-    toasts.value.push({ id, message, type })
-    setTimeout(() => remove(id), 3000)
+    const d = duration ?? (action ? 10000 : 3000)
+    toasts.value.push({ id, message, type, action, duration })
+    setTimeout(() => remove(id), d)
   }
 
   function remove(id: number) {

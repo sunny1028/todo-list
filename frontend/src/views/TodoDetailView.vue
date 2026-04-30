@@ -207,7 +207,7 @@ function parseTags(s: string) {
   <ConfirmDialog
     :open="showConfirm"
     title="删除待办"
-    :message="`确定要删除「${todo?.title}」吗？此操作无法撤销。`"
+    :message="`确定要删除「${todo?.title}」吗？`"
     @confirm="remove(); showConfirm = false"
     @cancel="showConfirm = false"
   />

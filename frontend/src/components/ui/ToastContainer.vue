@@ -13,15 +13,15 @@ const toast = useToast()
     <div
       v-for="t in toast.toasts"
       :key="t.id"
-      class="pointer-events-auto px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg backdrop-blur-sm transition-all cursor-pointer"
+      class="pointer-events-auto px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg backdrop-blur-sm transition-all flex items-center gap-2"
       :class="{
         'bg-emerald-500/90 text-white': t.type === 'success',
         'bg-red-500/90 text-white': t.type === 'error',
         'bg-gray-800/90 text-white dark:bg-white/90 dark:text-gray-800': t.type === 'info',
       }"
-      @click="toast.remove(t.id)"
     >
-      {{ t.message }}
+      <span>{{ t.message }}</span>
+      <button v-if="t.action" @click="t.action.onClick" class="underline font-bold hover:opacity-80 shrink-0">{{ t.action.label }}</button>
     </div>
   </TransitionGroup>
 </template>
