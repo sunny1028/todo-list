@@ -5,6 +5,7 @@ import { useTodos } from '../stores/todo'
 import type { Todo, Attachment } from '../types/todo'
 import * as api from '../api/todos'
 import ConfirmDialog from '../components/ui/ConfirmDialog.vue'
+import Select from '../components/ui/Select.vue'
 import { useToast } from '../stores/toast'
 
 const route = useRoute()
@@ -187,11 +188,11 @@ function parseTags(s: string) {
         <input v-model="editTitle" class="border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 outline-none" placeholder="标题" />
         <input v-model="editDescription" class="border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 outline-none" placeholder="备注" />
         <input v-model="editDueDate" type="date" class="border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 outline-none" />
-        <select v-model="editPriority" class="border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 outline-none">
-          <option value="low">低</option>
-          <option value="medium">中</option>
-          <option value="high">高</option>
-        </select>
+        <Select v-model="editPriority" :options="[
+          { label: '低', value: 'low' },
+          { label: '中', value: 'medium' },
+          { label: '高', value: 'high' },
+        ]" />
         <input v-model="editTags" class="border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 outline-none" placeholder="标签（逗号分隔）" />
         <div class="flex gap-2">
           <button @click="save" class="px-4 py-2 text-sm bg-indigo-500 text-white rounded-lg">保存</button>

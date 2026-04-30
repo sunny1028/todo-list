@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useTodos } from '../stores/todo'
 import DatePicker from './ui/DatePicker.vue'
+import Select from './ui/Select.vue'
 
 const store = useTodos()
 const title = ref('')
@@ -46,14 +47,11 @@ async function handleSubmit() {
       class="flex-1 min-w-[150px] px-3 py-2.5 border border-gray-200 dark:border-gray-800 rounded-lg text-sm outline-none focus:border-indigo-400 bg-white dark:bg-gray-900 dark:text-gray-100 transition-colors"
     />
     <DatePicker v-model="dueDate" />
-    <select
-      v-model="priority"
-      class="px-3 py-2.5 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-gray-900 dark:text-gray-100 outline-none"
-    >
-      <option value="low">低优先级</option>
-      <option value="medium">中优先级</option>
-      <option value="high">高优先级</option>
-    </select>
+    <Select v-model="priority" :options="[
+      { label: '低优先级', value: 'low' },
+      { label: '中优先级', value: 'medium' },
+      { label: '高优先级', value: 'high' },
+    ]" />
     <input
       v-model="tags"
       type="text"

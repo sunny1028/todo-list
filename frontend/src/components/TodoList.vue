@@ -5,6 +5,7 @@ import { useTodos } from '../stores/todo'
 import TodoForm from './TodoForm.vue'
 import TodoItem from './TodoItem.vue'
 import Skeleton from './ui/Skeleton.vue'
+import Select from './ui/Select.vue'
 import ConfirmDialog from './ui/ConfirmDialog.vue'
 import { useToast } from '../stores/toast'
 import * as api from '../api/todos'
@@ -184,22 +185,22 @@ onUnmounted(() => {
         placeholder="搜索… (Ctrl+K)"
         class="flex-1 min-w-[120px] px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm outline-none focus:border-indigo-400 bg-white dark:bg-gray-900 dark:text-gray-100 transition-colors"
       />
-      <select v-model="priorityFilter" class="px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-gray-900 dark:text-gray-100 outline-none">
-        <option value="">全部优先级</option>
-        <option value="high">高</option>
-        <option value="medium">中</option>
-        <option value="low">低</option>
-      </select>
-      <select v-model="tagFilter" class="px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-gray-900 dark:text-gray-100 outline-none">
-        <option value="">全部标签</option>
-        <option v-for="tag in allTags" :key="tag" :value="tag">{{ tag }}</option>
-      </select>
-      <select v-model="sortBy" class="px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-gray-900 dark:text-gray-100 outline-none">
-        <option value="default">默认</option>
-        <option value="created">最新</option>
-        <option value="priority">优先级</option>
-        <option value="due">截止日期</option>
-      </select>
+      <Select v-model="priorityFilter" :options="[
+        { label: '全部优先级', value: '' },
+        { label: '高', value: 'high' },
+        { label: '中', value: 'medium' },
+        { label: '低', value: 'low' },
+      ]" />
+      <Select v-model="tagFilter" :options="[
+        { label: '全部标签', value: '' },
+        ...allTags.map(t => ({ label: t, value: t })),
+      ]" />
+      <Select v-model="sortBy" :options="[
+        { label: '默认', value: 'default' },
+        { label: '最新', value: 'created' },
+        { label: '优先级', value: 'priority' },
+        { label: '截止日期', value: 'due' },
+      ]" />
 
       <!-- More menu -->
       <div class="relative">

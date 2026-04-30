@@ -6,6 +6,7 @@ import { useRouter } from 'vue-router'
 import { useResponsive } from '../composables/useResponsive'
 import * as api from '../api/todos'
 import ConfirmDialog from './ui/ConfirmDialog.vue'
+import Select from './ui/Select.vue'
 
 const props = defineProps<{ todo: Todo }>()
 const store = useTodos()
@@ -179,9 +180,11 @@ function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t =>
           <input v-model="editTitle" class="flex-1 min-w-[100px] px-2.5 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm outline-none focus:border-indigo-400 bg-white dark:bg-gray-800 dark:text-gray-100" placeholder="标题" />
           <input v-model="editDescription" class="flex-1 min-w-[100px] px-2.5 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm outline-none focus:border-indigo-400 bg-white dark:bg-gray-800 dark:text-gray-100" placeholder="备注" />
           <input v-model="editDueDate" type="date" class="px-2.5 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 dark:text-gray-100 outline-none" />
-          <select v-model="editPriority" class="px-2.5 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 dark:text-gray-100 outline-none">
-            <option value="low">低</option><option value="medium">中</option><option value="high">高</option>
-          </select>
+          <Select v-model="editPriority" :options="[
+            { label: '低', value: 'low' },
+            { label: '中', value: 'medium' },
+            { label: '高', value: 'high' },
+          ]" />
           <input v-model="editTags" class="w-[120px] px-2.5 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 dark:text-gray-100 outline-none" placeholder="标签" />
           <button @click="saveEdit" class="px-3 py-2 bg-indigo-500 text-white rounded-lg text-sm font-semibold">保存</button>
           <button @click="cancelEdit" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-semibold">取消</button>
