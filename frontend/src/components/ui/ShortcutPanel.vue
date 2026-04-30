@@ -2,7 +2,7 @@
 const emit = defineEmits<{ close: [] }>()
 
 const shortcuts = [
-  { key: 'Ctrl+N', desc: '聚焦新建输入框' },
+  { key: 'Alt+N', desc: '聚焦新建输入框' },
   { key: 'Ctrl+K', desc: '聚焦搜索' },
   { key: 'Esc', desc: '清除筛选并失焦' },
   { key: '?', desc: '打开/关闭快捷键面板' },

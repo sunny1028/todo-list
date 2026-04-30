@@ -123,6 +123,7 @@ function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t =>
               :class="{ 'line-through text-gray-400 dark:text-gray-600': todo.completed, 'text-gray-800 dark:text-gray-100': !todo.completed }">
               {{ todo.title }}
             </span>
+            <span v-if="todo.description" class="text-[12px] text-gray-400 dark:text-gray-500 truncate mt-0.5">{{ todo.description }}</span>
             <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
               <span v-for="tag in parseTags(todo.tags)" :key="tag"
                 class="text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
@@ -146,7 +147,7 @@ function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t =>
               'text-red-500 font-semibold': isOverdue,
               'text-amber-500 font-semibold': isDueToday,
               'text-gray-400 dark:text-gray-500': !isOverdue && !isDueToday && !todo.completed,
-            }">{{ isOverdue ? '已过期' : isDueToday ? '今天' : formatDate(todo.due_date) }}</span>
+            }">{{ isOverdue ? '已过期 ' + formatDate(todo.due_date) : isDueToday ? '今天' : formatDate(todo.due_date) }}</span>
 
           <!-- Subtask toggle -->
           <button @click.stop="toggleSubtasks" class="w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 dark:text-gray-600 hover:text-indigo-500 transition-colors"

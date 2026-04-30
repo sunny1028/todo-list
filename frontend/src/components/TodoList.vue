@@ -15,7 +15,7 @@ const route = useRoute()
 const search = ref('')
 const priorityFilter = ref('')
 const tagFilter = ref('')
-const sortBy = ref('created')
+const sortBy = ref('default')
 const showClearConfirm = ref(false)
 const showMore = ref(false)
 const searchInput = ref<HTMLInputElement | null>(null)
@@ -60,6 +60,9 @@ function filteredTodos() {
   }
 
   switch (sortBy.value) {
+    case 'default':
+      // Keep backend sort_order
+      break
     case 'priority': {
       const order = { high: 0, medium: 1, low: 2 }
       list.sort((a, b) => (order[a.priority] ?? 1) - (order[b.priority] ?? 1))
@@ -97,10 +100,58 @@ async function handleClearCompleted() {
   showMore.value = false
 }
 
+const dragId = ref<number | null>(null)
+const dragOverId = ref<number | null>(null)
+
+function onDragStart(todo: { id: number }) {
+  dragId.value = todo.id
+}
+
+function onDragOver(e: DragEvent, todo: { id: number }) {
+  e.preventDefault()
+  if (dragId.value && dragId.value !== todo.id) {
+    dragOverId.value = todo.id
+  }
+}
+
+function onDragLeave() {
+  dragOverId.value = null
+}
+
+async function onDrop(todo: { id: number }) {
+  dragOverId.value = null
+  if (!dragId.value || dragId.value === todo.id) {
+    dragId.value = null
+    return
+  }
+  const srcId = dragId.value
+  dragId.value = null
+
+  const arr = store.todos
+  const srcIdx = arr.findIndex(t => t.id === srcId)
+  const dstIdx = arr.findIndex(t => t.id === todo.id)
+  if (srcIdx === -1 || dstIdx === -1) return
+
+  const [item] = arr.splice(srcIdx, 1)
+  arr.splice(dstIdx, 0, item)
+
+  const ids = arr.map(t => t.id)
+  await store.reorder(ids)
+}
+
+function onDragEnd() {
+  dragId.value = null
+  dragOverId.value = null
+}
+
 function onKeydown(e: KeyboardEvent) {
   if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
     e.preventDefault()
     searchInput.value?.focus()
+  }
+  if (e.altKey && e.key === 'n') {
+    e.preventDefault()
+    document.getElementById('new-todo-title')?.focus()
   }
   if (e.key === 'Escape') {
     search.value = ''
@@ -144,6 +195,7 @@ onUnmounted(() => {
         <option v-for="tag in allTags" :key="tag" :value="tag">{{ tag }}</option>
       </select>
       <select v-model="sortBy" class="px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-gray-900 dark:text-gray-100 outline-none">
+        <option value="default">默认</option>
         <option value="created">最新</option>
         <option value="priority">优先级</option>
         <option value="due">截止日期</option>
@@ -179,13 +231,21 @@ onUnmounted(() => {
     </div>
 
     <TransitionGroup v-else name="list" tag="div">
-      <div v-for="todo in filteredTodos()" :key="todo.id">
+      <div v-for="todo in filteredTodos()" :key="todo.id"
+        draggable="true"
+        @dragstart="onDragStart(todo)"
+        @dragover="onDragOver($event, todo)"
+        @dragleave="onDragLeave"
+        @drop="onDrop(todo)"
+        @dragend="onDragEnd"
+        :class="{ 'opacity-40': dragId === todo.id, 'border-t-2 border-indigo-400': dragOverId === todo.id }"
+      >
         <TodoItem :todo="todo" />
       </div>
     </TransitionGroup>
 
     <div class="mt-8 text-center text-[11px] text-gray-300 dark:text-gray-700 hidden md:block">
-      <kbd class="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-400">Ctrl+N</kbd> 新建
+      <kbd class="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-400">Alt+N</kbd> 新建
       <kbd class="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-400 ml-2">Ctrl+K</kbd> 搜索
       <kbd class="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-400 ml-2">?</kbd> 快捷键
     </div>

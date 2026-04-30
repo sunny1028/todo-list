@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useTodos } from '../stores/todo'
+import DatePicker from './ui/DatePicker.vue'
 
 const store = useTodos()
 const title = ref('')
@@ -32,9 +33,10 @@ async function handleSubmit() {
 <template>
   <form @submit.prevent="handleSubmit" class="flex flex-wrap gap-2 mb-6">
     <input
+      id="new-todo-title"
       v-model="title"
       type="text"
-      placeholder="添加待办事项…"
+      placeholder="添加待办事项… (Alt+N)"
       class="flex-1 min-w-[180px] px-3 py-2.5 border border-gray-200 dark:border-gray-800 rounded-lg text-sm outline-none focus:border-indigo-400 bg-white dark:bg-gray-900 dark:text-gray-100 transition-colors"
     />
     <input
@@ -43,11 +45,7 @@ async function handleSubmit() {
       placeholder="备注（可选）"
       class="flex-1 min-w-[150px] px-3 py-2.5 border border-gray-200 dark:border-gray-800 rounded-lg text-sm outline-none focus:border-indigo-400 bg-white dark:bg-gray-900 dark:text-gray-100 transition-colors"
     />
-    <input
-      v-model="dueDate"
-      type="date"
-      class="px-3 py-2.5 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-gray-900 dark:text-gray-100 outline-none"
-    />
+    <DatePicker v-model="dueDate" />
     <select
       v-model="priority"
       class="px-3 py-2.5 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-gray-900 dark:text-gray-100 outline-none"
