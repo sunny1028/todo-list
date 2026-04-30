@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import type { Todo } from '../types/todo'
+import { useTodos } from '../stores/todo'
 import * as api from '../api/todos'
 
+const store = useTodos()
 const today = new Date()
 const currentYear = ref(today.getFullYear())
 const currentMonth = ref(today.getMonth())
@@ -24,9 +26,13 @@ const days = computed(() => {
 })
 
 async function load() {
-  const res = await api.listTodos()
+  const params: Record<string, string> = {}
+  if (store.currentListId > 0) params.list_id = String(store.currentListId)
+  const res = await api.listTodos(params)
   todos.value = res.data.filter(t => !t.archived && t.due_date)
 }
+
+watch(() => store.currentListId, () => load())
 
 function dateStr(d: number) {
   const m = String(currentMonth.value + 1).padStart(2, '0')

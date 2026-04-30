@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useTodos } from '../stores/todo'
 import type { Stats } from '../types/todo'
 
@@ -9,9 +9,12 @@ const stats = ref<Stats | null>(null)
 const priorityLabels: Record<string, string> = { low: '低', medium: '中', high: '高' }
 const priorityColors: Record<string, string> = { low: 'bg-blue-500', medium: 'bg-yellow-500', high: 'bg-red-500' }
 
-onMounted(async () => {
+async function load() {
   stats.value = await store.fetchStats()
-})
+}
+
+onMounted(load)
+watch(() => store.currentListId, load)
 
 function pct(part: number, total: number) {
   if (total === 0) return 0
