@@ -17,6 +17,8 @@ const colors = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'
 function selectList(id: number) {
   todoStore.setList(id)
   todoStore.fetchTodos()
+  // "全部待办" 作为返回列表视图的入口
+  if (id === 0 && route.path !== '/') router.push('/')
 }
 
 function isActive(id: number) {
