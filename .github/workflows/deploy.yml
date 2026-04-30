@@ -30,18 +30,15 @@ jobs:
           ls -lh *.tar.gz
 
       - name: Upload to OSS
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.OSS_SECRET_KEY }}
-          AWS_DEFAULT_REGION: oss-default
         run: |
           TAG=${{ github.ref_name }}
           ENDPOINT=${{ secrets.OSS_ENDPOINT }}
           BUCKET=${{ secrets.OSS_BUCKET_NAME }}
-          OSS_URL="https://${BUCKET}.${ENDPOINT}"
-          # s3api put-object: single PUT, no chunked encoding (OSS incompatible with aws-chunked)
-          aws s3api put-object --bucket ${BUCKET} --key images/todo-deploy/backend-${TAG}.tar.gz --body backend-${TAG}.tar.gz --endpoint-url ${OSS_URL} --acl public-read
-          aws s3api put-object --bucket ${BUCKET} --key images/todo-deploy/frontend-${TAG}.tar.gz --body frontend-${TAG}.tar.gz --endpoint-url ${OSS_URL} --acl public-read
+          curl -fsSL -o ossutil64 https://gosspublic.alicdn.com/ossutil/1.7.21/ossutil64
+          chmod +x ossutil64
+          ./ossutil64 config -e https://${ENDPOINT} -i ${{ secrets.OSS_ACCESS_KEY }} -k ${{ secrets.OSS_SECRET_KEY }} -L EN -c ./ossconfig
+          ./ossutil64 cp backend-${TAG}.tar.gz oss://${BUCKET}/images/todo-deploy/backend-${TAG}.tar.gz -c ./ossconfig -f --acl public-read
+          ./ossutil64 cp frontend-${TAG}.tar.gz oss://${BUCKET}/images/todo-deploy/frontend-${TAG}.tar.gz -c ./ossconfig -f --acl public-read
 
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.9.1
