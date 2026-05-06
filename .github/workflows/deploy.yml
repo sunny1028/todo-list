@@ -14,23 +14,23 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Harbor
+      - name: Login to ACR
         run: |
-          echo "${{ secrets.HARBOR_PASSWORD }}" | docker login ${{ secrets.HARBOR_HOST }} -u ${{ secrets.HARBOR_USERNAME }} --password-stdin
+          echo "${{ secrets.HARBOR_PASSWORD }}" | docker login registry.cn-hangzhou.aliyuncs.com -u ${{ secrets.HARBOR_USERNAME }} --password-stdin
 
       - name: Build and push backend image
         run: |
           TAG=${{ github.ref_name }}
-          HOST=${{ secrets.HARBOR_HOST }}
-          IMAGE="${HOST}/xys/todo-backend:${TAG}"
+          REGISTRY=registry.cn-hangzhou.aliyuncs.com
+          IMAGE="${REGISTRY}/sunbo22/todo-backend:${TAG}"
           docker build -t ${IMAGE} ./backend
           docker push ${IMAGE}
 
       - name: Build and push frontend image
         run: |
           TAG=${{ github.ref_name }}
-          HOST=${{ secrets.HARBOR_HOST }}
-          IMAGE="${HOST}/xys/todo-frontend:${TAG}"
+          REGISTRY=registry.cn-hangzhou.aliyuncs.com
+          IMAGE="${REGISTRY}/sunbo22/todo-frontend:${TAG}"
           docker build -t ${IMAGE} ./frontend
           docker push ${IMAGE}
 
@@ -44,11 +44,11 @@ jobs:
           ssh -o StrictHostKeyChecking=accept-new -p 20004 root@218.4.33.10 << 'DEPLOY'
             set -e
             TAG=${{ github.ref_name }}
-            HOST=${{ secrets.HARBOR_HOST }}
-            HARBOR_PASSWORD=${{ secrets.HARBOR_PASSWORD }}
-            HARBOR_USERNAME=${{ secrets.HARBOR_USERNAME }}
+            REGISTRY=registry.cn-hangzhou.aliyuncs.com
+            ACR_PASSWORD=${{ secrets.HARBOR_PASSWORD }}
+            ACR_USERNAME=${{ secrets.HARBOR_USERNAME }}
 
-            echo "${HARBOR_PASSWORD}" | docker login ${HOST} -u ${HARBOR_USERNAME} --password-stdin
+            echo "${ACR_PASSWORD}" | docker login ${REGISTRY} -u ${ACR_USERNAME} --password-stdin
 
             docker network create todo-net 2>/dev/null || true
 
@@ -57,8 +57,8 @@ jobs:
             docker rm todo-backend 2>/dev/null || true
             docker rm todo-frontend 2>/dev/null || true
 
-            docker pull ${HOST}/xys/todo-backend:${TAG}
-            docker pull ${HOST}/xys/todo-frontend:${TAG}
+            docker pull ${REGISTRY}/sunbo22/todo-backend:${TAG}
+            docker pull ${REGISTRY}/sunbo22/todo-frontend:${TAG}
 
             docker run -d --name todo-backend \
               --network todo-net \
@@ -68,13 +68,13 @@ jobs:
               -e DB_PATH=/app/data/todo.db \
               -e CORS_ORIGIN=* \
               --restart unless-stopped \
-              ${HOST}/xys/todo-backend:${TAG}
+              ${REGISTRY}/sunbo22/todo-backend:${TAG}
 
             docker run -d --name todo-frontend \
               --network todo-net \
               -p 8079:80 \
               --restart unless-stopped \
-              ${HOST}/xys/todo-frontend:${TAG}
+              ${REGISTRY}/sunbo22/todo-frontend:${TAG}
 
             docker image prune -f
             docker ps
