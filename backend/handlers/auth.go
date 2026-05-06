@@ -87,16 +87,34 @@ func AuthBind(c *gin.Context) {
 		return
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "server error"})
+	// Check if username already exists
+	var existing models.User
+	if database.DB.Where("username = ? AND id != ?", req.Username, userID).First(&existing).Error == nil {
+		// Username taken — if password matches, login directly
+		if bcrypt.CompareHashAndPassword([]byte(existing.PasswordHash), []byte(req.Password)) == nil {
+			// Merge anonymous data into this account
+			uid := userID
+			database.DB.Model(&models.Todo{}).Where("user_id = ?", uid).Update("user_id", existing.ID)
+			database.DB.Model(&models.List{}).Where("user_id = ?", uid).Update("user_id", existing.ID)
+			database.DB.Model(&models.Subtask{}).Where("user_id = ?", uid).Update("user_id", existing.ID)
+			database.DB.Model(&models.Attachment{}).Where("user_id = ?", uid).Update("user_id", existing.ID)
+			database.DB.Delete(&models.User{}, uid)
+
+			token, err := generateJWT(existing.ID, existing.UUID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate token"})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"token": token, "has_password": existing.HasPassword})
+			return
+		}
+		c.JSON(http.StatusConflict, gin.H{"error": "username already taken"})
 		return
 	}
 
-	// Check username not taken by another user
-	var existing models.User
-	if database.DB.Where("username = ? AND id != ?", req.Username, userID).First(&existing).Error == nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "username already taken"})
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "server error"})
 		return
 	}
 
