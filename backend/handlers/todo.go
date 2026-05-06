@@ -23,13 +23,14 @@ func parseListID(c *gin.Context) uint {
 }
 
 func ListTodos(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	listID := parseListID(c)
 	status := c.Query("status")
 	priority := c.Query("priority")
 	tag := c.Query("tag")
 	search := c.Query("search")
 
-	todos, err := services.GetTodos(listID, status, priority, tag, search)
+	todos, err := services.GetTodos(userID, listID, status, priority, tag, search)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -38,13 +39,14 @@ func ListTodos(c *gin.Context) {
 }
 
 func GetTodo(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
-	todo, err := services.GetTodo(uint(id))
+	todo, err := services.GetTodo(userID, uint(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -53,11 +55,13 @@ func GetTodo(c *gin.Context) {
 }
 
 func CreateTodo(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	var todo models.Todo
 	if err := c.ShouldBindJSON(&todo); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	todo.UserID = userID
 
 	if err := services.CreateTodo(&todo); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -67,6 +71,7 @@ func CreateTodo(c *gin.Context) {
 }
 
 func UpdateTodo(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
@@ -79,7 +84,7 @@ func UpdateTodo(c *gin.Context) {
 		return
 	}
 
-	todo, err := services.UpdateTodo(uint(id), &input)
+	todo, err := services.UpdateTodo(userID, uint(id), &input)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -88,13 +93,14 @@ func UpdateTodo(c *gin.Context) {
 }
 
 func ToggleTodo(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
-	todo, err := services.ToggleTodo(uint(id))
+	todo, err := services.ToggleTodo(userID, uint(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -103,13 +109,14 @@ func ToggleTodo(c *gin.Context) {
 }
 
 func DeleteTodo(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
-	if err := services.DeleteTodo(uint(id)); err != nil {
+	if err := services.DeleteTodo(userID, uint(id)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -121,13 +128,14 @@ type reorderRequest struct {
 }
 
 func ReorderTodos(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	var req reorderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if err := services.ReorderTodos(req.IDs); err != nil {
+	if err := services.ReorderTodos(userID, req.IDs); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -135,10 +143,11 @@ func ReorderTodos(c *gin.Context) {
 }
 
 func ExportTodos(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	format := c.DefaultQuery("format", "json")
 	listID := parseListID(c)
 
-	todos, err := services.GetTodos(listID, "", "", "", "")
+	todos, err := services.GetTodos(userID, listID, "", "", "", "")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -166,12 +175,13 @@ func ExportTodos(c *gin.Context) {
 }
 
 func ArchiveTodo(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	todo, err := services.ArchiveTodo(uint(id))
+	todo, err := services.ArchiveTodo(userID, uint(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -180,12 +190,13 @@ func ArchiveTodo(c *gin.Context) {
 }
 
 func UnarchiveTodo(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	todo, err := services.UnarchiveTodo(uint(id))
+	todo, err := services.UnarchiveTodo(userID, uint(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -194,6 +205,7 @@ func UnarchiveTodo(c *gin.Context) {
 }
 
 func ImportTodos(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	format := c.DefaultQuery("format", "json")
 	listID := parseListID(c)
 
@@ -213,7 +225,7 @@ func ImportTodos(c *gin.Context) {
 		for _, line := range lines[1:] {
 			fields := splitCSV(line)
 			if len(fields) >= 1 && fields[0] != "" {
-				todo := models.Todo{Title: fields[0], ListID: listID}
+				todo := models.Todo{Title: fields[0], ListID: listID, UserID: userID}
 				if len(fields) >= 2 {
 					todo.Description = fields[1]
 				}
@@ -235,6 +247,7 @@ func ImportTodos(c *gin.Context) {
 		}
 		for i := range todos {
 			if todos[i].Title != "" {
+				todos[i].UserID = userID
 				if listID > 0 {
 					todos[i].ListID = listID
 				}
@@ -301,7 +314,8 @@ func splitCSV(s string) []string {
 }
 
 func Stats(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	listID := parseListID(c)
-	stats := services.GetStats(listID)
+	stats := services.GetStats(userID, listID)
 	c.JSON(http.StatusOK, stats)
 }

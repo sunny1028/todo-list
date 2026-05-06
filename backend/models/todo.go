@@ -3,6 +3,7 @@ package models
 import "time"
 
 type Todo struct {
+	UserID      uint      `json:"user_id" gorm:"index;not null;default:0"`
 	ID          uint      `json:"id" gorm:"primaryKey"`
 	Title       string    `json:"title" gorm:"not null" binding:"required"`
 	Description string    `json:"description"`

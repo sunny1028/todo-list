@@ -1,7 +1,5 @@
-import axios from 'axios'
 import type { Todo, List, Stats, Subtask, Attachment, CreateTodoRequest, UpdateTodoRequest, CreateListRequest } from '../types/todo'
-
-const api = axios.create({ baseURL: '/api' })
+import api from './index'
 
 // Todos
 export function listTodos(params?: Record<string, string>) {

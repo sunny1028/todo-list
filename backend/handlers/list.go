@@ -10,7 +10,8 @@ import (
 )
 
 func ListLists(c *gin.Context) {
-	lists, err := services.GetLists()
+	userID := c.GetUint("user_id")
+	lists, err := services.GetLists(userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -19,11 +20,13 @@ func ListLists(c *gin.Context) {
 }
 
 func CreateList(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	var list models.List
 	if err := c.ShouldBindJSON(&list); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	list.UserID = userID
 	if err := services.CreateList(&list); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -32,6 +35,7 @@ func CreateList(c *gin.Context) {
 }
 
 func UpdateList(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
@@ -42,7 +46,7 @@ func UpdateList(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	list, err := services.UpdateList(uint(id), &input)
+	list, err := services.UpdateList(userID, uint(id), &input)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -51,12 +55,13 @@ func UpdateList(c *gin.Context) {
 }
 
 func DeleteList(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	if err := services.DeleteList(uint(id)); err != nil {
+	if err := services.DeleteList(userID, uint(id)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

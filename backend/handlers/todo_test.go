@@ -7,11 +7,15 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
+	"todo-list/backend/config"
 	"todo-list/backend/database"
+	"todo-list/backend/models"
 	"todo-list/backend/router"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func init() {
@@ -20,7 +24,16 @@ func init() {
 
 func setup() *gin.Engine {
 	database.Init(":memory:")
+	// Create a test user
+	database.DB.Create(&models.User{UUID: "test-uuid"})
 	return router.Setup("http://localhost")
+}
+
+func authHeader() string {
+	claims := jwt.MapClaims{"user_id": float64(1), "uuid": "test-uuid", "exp": time.Now().Add(time.Hour).Unix()}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	s, _ := token.SignedString([]byte(config.Load().JWTSecret))
+	return "Bearer " + s
 }
 
 func TestCreateTodo(t *testing.T) {
@@ -28,6 +41,7 @@ func TestCreateTodo(t *testing.T) {
 	body := `{"title":"Test todo","description":"desc","priority":"high","tags":"work,urgent"}`
 	req := httptest.NewRequest("POST", "/api/todos", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", authHeader())
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -48,11 +62,13 @@ func TestListTodos(t *testing.T) {
 		body := `{"title":"` + title + `","priority":"medium"}`
 		req := httptest.NewRequest("POST", "/api/todos", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", authHeader())
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 	}
 
 	req := httptest.NewRequest("GET", "/api/todos", nil)
+	req.Header.Set("Authorization", authHeader())
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -72,6 +88,7 @@ func TestToggleTodo(t *testing.T) {
 	body := `{"title":"Toggle me"}`
 	req := httptest.NewRequest("POST", "/api/todos", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", authHeader())
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	var created map[string]interface{}
@@ -80,6 +97,7 @@ func TestToggleTodo(t *testing.T) {
 
 	url := "/api/todos/" + strconv.Itoa(id) + "/toggle"
 	req = httptest.NewRequest("PATCH", url, nil)
+	req.Header.Set("Authorization", authHeader())
 	w = httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -99,6 +117,7 @@ func TestDeleteTodo(t *testing.T) {
 	body := `{"title":"Delete me"}`
 	req := httptest.NewRequest("POST", "/api/todos", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", authHeader())
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	var created map[string]interface{}
@@ -106,6 +125,7 @@ func TestDeleteTodo(t *testing.T) {
 	id := int(created["id"].(float64))
 
 	req = httptest.NewRequest("DELETE", "/api/todos/"+strconv.Itoa(id), nil)
+	req.Header.Set("Authorization", authHeader())
 	w = httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -119,10 +139,12 @@ func TestFilterByTag(t *testing.T) {
 	body := `{"title":"Tagged","tags":"test-tag","priority":"medium"}`
 	req := httptest.NewRequest("POST", "/api/todos", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", authHeader())
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
 	req = httptest.NewRequest("GET", "/api/todos?tag=test-tag", nil)
+	req.Header.Set("Authorization", authHeader())
 	w = httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -136,6 +158,7 @@ func TestFilterByTag(t *testing.T) {
 func TestExportJSON(t *testing.T) {
 	r := setup()
 	req := httptest.NewRequest("GET", "/api/todos/export?format=json", nil)
+	req.Header.Set("Authorization", authHeader())
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
@@ -146,6 +169,7 @@ func TestExportJSON(t *testing.T) {
 func TestExportCSV(t *testing.T) {
 	r := setup()
 	req := httptest.NewRequest("GET", "/api/todos/export?format=csv", nil)
+	req.Header.Set("Authorization", authHeader())
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
@@ -155,17 +179,17 @@ func TestExportCSV(t *testing.T) {
 
 func TestReorder(t *testing.T) {
 	r := setup()
-	// Create 3 todos
 	for _, title := range []string{"A", "B", "C"} {
 		body := `{"title":"` + title + `"}`
 		req := httptest.NewRequest("POST", "/api/todos", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", authHeader())
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 	}
 
-	// Get IDs
 	req := httptest.NewRequest("GET", "/api/todos", nil)
+	req.Header.Set("Authorization", authHeader())
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	var todos []map[string]interface{}
@@ -175,7 +199,6 @@ func TestReorder(t *testing.T) {
 		ids = append(ids, int(td["id"].(float64)))
 	}
 
-	// Reverse order
 	idsStr := make([]string, len(ids))
 	for i, id := range ids {
 		idsStr[i] = strconv.Itoa(id)
@@ -183,6 +206,7 @@ func TestReorder(t *testing.T) {
 	body := `{"ids":[` + strings.Join(idsStr, ",") + `]}`
 	req = httptest.NewRequest("PUT", "/api/todos/reorder", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", authHeader())
 	w = httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 

@@ -6,14 +6,14 @@ import (
 	"todo-list/backend/repository"
 )
 
-func GetTodos(listID uint, status, priority, tag, search string) ([]models.Todo, error) {
-	return repository.FindAll(listID, status, priority, tag, search)
+func GetTodos(userID uint, listID uint, status, priority, tag, search string) ([]models.Todo, error) {
+	return repository.FindAll(userID, listID, status, priority, tag, search)
 }
 
-func GetStats(listID uint) map[string]interface{} {
-	total, active, completed := repository.CountAll(listID)
-	byPriority := repository.CountByPriority(listID)
-	byTag := repository.CountByTag(listID)
+func GetStats(userID uint, listID uint) map[string]interface{} {
+	total, active, completed := repository.CountAll(userID, listID)
+	byPriority := repository.CountByPriority(userID, listID)
+	byTag := repository.CountByTag(userID, listID)
 
 	return map[string]interface{}{
 		"total":       total,
@@ -24,8 +24,8 @@ func GetStats(listID uint) map[string]interface{} {
 	}
 }
 
-func GetTodo(id uint) (*models.Todo, error) {
-	todo, err := repository.FindByID(id)
+func GetTodo(userID uint, id uint) (*models.Todo, error) {
+	todo, err := repository.FindByID(userID, id)
 	if err != nil {
 		return nil, errors.New("todo not found")
 	}
@@ -39,13 +39,13 @@ func CreateTodo(todo *models.Todo) error {
 	if todo.Priority == "" {
 		todo.Priority = "medium"
 	}
-	maxOrder, _ := repository.GetMaxSortOrder()
+	maxOrder, _ := repository.GetMaxSortOrder(todo.UserID)
 	todo.SortOrder = maxOrder + 1
 	return repository.Create(todo)
 }
 
-func UpdateTodo(id uint, input *models.Todo) (*models.Todo, error) {
-	todo, err := repository.FindByID(id)
+func UpdateTodo(userID uint, id uint, input *models.Todo) (*models.Todo, error) {
+	todo, err := repository.FindByID(userID, id)
 	if err != nil {
 		return nil, errors.New("todo not found")
 	}
@@ -62,8 +62,8 @@ func UpdateTodo(id uint, input *models.Todo) (*models.Todo, error) {
 	return todo, nil
 }
 
-func ToggleTodo(id uint) (*models.Todo, error) {
-	todo, err := repository.FindByID(id)
+func ToggleTodo(userID uint, id uint) (*models.Todo, error) {
+	todo, err := repository.FindByID(userID, id)
 	if err != nil {
 		return nil, errors.New("todo not found")
 	}
@@ -74,17 +74,17 @@ func ToggleTodo(id uint) (*models.Todo, error) {
 	return todo, nil
 }
 
-func ReorderTodos(ids []uint) error {
+func ReorderTodos(userID uint, ids []uint) error {
 	for i, id := range ids {
-		if err := repository.UpdateOrder(id, i); err != nil {
+		if err := repository.UpdateOrder(userID, id, i); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func ArchiveTodo(id uint) (*models.Todo, error) {
-	todo, err := repository.FindByID(id)
+func ArchiveTodo(userID uint, id uint) (*models.Todo, error) {
+	todo, err := repository.FindByID(userID, id)
 	if err != nil {
 		return nil, errors.New("todo not found")
 	}
@@ -95,8 +95,8 @@ func ArchiveTodo(id uint) (*models.Todo, error) {
 	return todo, nil
 }
 
-func UnarchiveTodo(id uint) (*models.Todo, error) {
-	todo, err := repository.FindByID(id)
+func UnarchiveTodo(userID uint, id uint) (*models.Todo, error) {
+	todo, err := repository.FindByID(userID, id)
 	if err != nil {
 		return nil, errors.New("todo not found")
 	}
@@ -107,6 +107,6 @@ func UnarchiveTodo(id uint) (*models.Todo, error) {
 	return todo, nil
 }
 
-func DeleteTodo(id uint) error {
-	return repository.Delete(id)
+func DeleteTodo(userID uint, id uint) error {
+	return repository.Delete(userID, id)
 }

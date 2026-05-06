@@ -15,6 +15,7 @@ import (
 )
 
 func UploadAttachment(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	todoID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid todo id"})
@@ -40,6 +41,7 @@ func UploadAttachment(c *gin.Context) {
 	}
 
 	att := models.Attachment{
+		UserID:   userID,
 		TodoID:   uint(todoID),
 		Filename: file.Filename,
 		Filepath: savedPath,
@@ -52,16 +54,18 @@ func UploadAttachment(c *gin.Context) {
 }
 
 func ListAttachments(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	todoID := c.Param("id")
 	var atts []models.Attachment
-	database.DB.Where("todo_id = ?", todoID).Find(&atts)
+	database.DB.Where("user_id = ? AND todo_id = ?", userID, todoID).Find(&atts)
 	c.JSON(http.StatusOK, atts)
 }
 
 func ServeAttachment(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	id := c.Param("id")
 	var att models.Attachment
-	if err := database.DB.First(&att, id).Error; err != nil {
+	if err := database.DB.Where("user_id = ?", userID).First(&att, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
 	}
@@ -69,9 +73,10 @@ func ServeAttachment(c *gin.Context) {
 }
 
 func DeleteAttachment(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	id := c.Param("id")
 	var att models.Attachment
-	if err := database.DB.First(&att, id).Error; err != nil {
+	if err := database.DB.Where("user_id = ?", userID).First(&att, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
 	}

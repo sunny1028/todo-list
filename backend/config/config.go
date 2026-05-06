@@ -6,6 +6,7 @@ type Config struct {
 	Port       string
 	DBPath     string
 	CorsOrigin string
+	JWTSecret  string
 }
 
 func Load() *Config {
@@ -13,6 +14,7 @@ func Load() *Config {
 		Port:       getEnv("PORT", "8080"),
 		DBPath:     getEnv("DB_PATH", "todo.db"),
 		CorsOrigin: getEnv("CORS_ORIGIN", "http://localhost:5173"),
+		JWTSecret:  getEnv("JWT_SECRET", "dev-secret-change-in-production"),
 	}
 }
 

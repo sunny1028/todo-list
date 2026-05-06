@@ -6,12 +6,12 @@ import (
 	"todo-list/backend/repository"
 )
 
-func GetLists() ([]models.List, error) {
-	return repository.FindAllLists()
+func GetLists(userID uint) ([]models.List, error) {
+	return repository.FindAllLists(userID)
 }
 
-func GetList(id uint) (*models.List, error) {
-	list, err := repository.FindListByID(id)
+func GetList(userID uint, id uint) (*models.List, error) {
+	list, err := repository.FindListByID(userID, id)
 	if err != nil {
 		return nil, errors.New("list not found")
 	}
@@ -25,8 +25,8 @@ func CreateList(list *models.List) error {
 	return repository.CreateList(list)
 }
 
-func UpdateList(id uint, input *models.List) (*models.List, error) {
-	list, err := repository.FindListByID(id)
+func UpdateList(userID uint, id uint, input *models.List) (*models.List, error) {
+	list, err := repository.FindListByID(userID, id)
 	if err != nil {
 		return nil, errors.New("list not found")
 	}
@@ -38,6 +38,6 @@ func UpdateList(id uint, input *models.List) (*models.List, error) {
 	return list, nil
 }
 
-func DeleteList(id uint) error {
-	return repository.DeleteList(id)
+func DeleteList(userID uint, id uint) error {
+	return repository.DeleteList(userID, id)
 }

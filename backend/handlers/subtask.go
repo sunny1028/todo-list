@@ -11,13 +11,15 @@ import (
 )
 
 func ListSubtasks(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	todoID := c.Param("id")
 	var subtasks []models.Subtask
-	database.DB.Where("todo_id = ?", todoID).Find(&subtasks)
+	database.DB.Where("user_id = ? AND todo_id = ?", userID, todoID).Find(&subtasks)
 	c.JSON(http.StatusOK, subtasks)
 }
 
 func CreateSubtask(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	todoID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid todo id"})
@@ -28,19 +30,21 @@ func CreateSubtask(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	st.UserID = userID
 	st.TodoID = uint(todoID)
 	database.DB.Create(&st)
 	c.JSON(http.StatusCreated, st)
 }
 
 func ToggleSubtask(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 	var st models.Subtask
-	if err := database.DB.First(&st, id).Error; err != nil {
+	if err := database.DB.Where("user_id = ?", userID).First(&st, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
 	}
@@ -50,7 +54,8 @@ func ToggleSubtask(c *gin.Context) {
 }
 
 func DeleteSubtask(c *gin.Context) {
+	userID := c.GetUint("user_id")
 	id := c.Param("id")
-	database.DB.Delete(&models.Subtask{}, id)
+	database.DB.Where("user_id = ?", userID).Delete(&models.Subtask{}, id)
 	c.JSON(http.StatusOK, gin.H{"message": "deleted"})
 }

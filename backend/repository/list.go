@@ -5,15 +5,15 @@ import (
 	"todo-list/backend/models"
 )
 
-func FindAllLists() ([]models.List, error) {
+func FindAllLists(userID uint) ([]models.List, error) {
 	var lists []models.List
-	err := database.DB.Order("created_at ASC").Find(&lists).Error
+	err := database.DB.Where("user_id = ?", userID).Order("created_at ASC").Find(&lists).Error
 	return lists, err
 }
 
-func FindListByID(id uint) (*models.List, error) {
+func FindListByID(userID uint, id uint) (*models.List, error) {
 	var list models.List
-	err := database.DB.First(&list, id).Error
+	err := database.DB.Where("user_id = ?", userID).First(&list, id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -28,8 +28,7 @@ func UpdateList(list *models.List) error {
 	return database.DB.Save(list).Error
 }
 
-func DeleteList(id uint) error {
-	// Move todos in this list to no-list (0)
-	database.DB.Model(&models.Todo{}).Where("list_id = ?", id).Update("list_id", 0)
-	return database.DB.Delete(&models.List{}, id).Error
+func DeleteList(userID uint, id uint) error {
+	database.DB.Model(&models.Todo{}).Where("user_id = ? AND list_id = ?", userID, id).Update("list_id", 0)
+	return database.DB.Where("user_id = ?", userID).Delete(&models.List{}, id).Error
 }
