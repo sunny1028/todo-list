@@ -66,6 +66,30 @@ func ToggleSubtask(c *gin.Context) {
 	c.JSON(http.StatusOK, st)
 }
 
+func UpdateSubtask(c *gin.Context) {
+	userID := c.GetUint("user_id")
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	var st models.Subtask
+	if err := database.DB.Where("user_id = ?", userID).First(&st, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+	var input models.Subtask
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if input.Title != "" {
+		st.Title = input.Title
+	}
+	database.DB.Save(&st)
+	c.JSON(http.StatusOK, st)
+}
+
 func DeleteSubtask(c *gin.Context) {
 	userID := c.GetUint("user_id")
 	id := c.Param("id")

@@ -49,6 +49,9 @@ export function listSubtasks(todoId: number) {
 export function createSubtask(todoId: number, title: string) {
   return api.post<Subtask>(`/todos/${todoId}/subtasks`, { title })
 }
+export function updateSubtask(id: number, data: { title: string }) {
+  return api.patch<Subtask>(`/subtasks/${id}`, data)
+}
 export function toggleSubtask(id: number) {
   return api.patch<Subtask>(`/subtasks/${id}/toggle`)
 }

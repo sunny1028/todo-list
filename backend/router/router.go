@@ -49,6 +49,7 @@ func Setup(corsOrigin string) *gin.Engine {
 		// Subtasks
 		protected.GET("/todos/:id/subtasks", handlers.ListSubtasks)
 		protected.POST("/todos/:id/subtasks", handlers.CreateSubtask)
+		protected.PATCH("/subtasks/:id", handlers.UpdateSubtask)
 		protected.PATCH("/subtasks/:id/toggle", handlers.ToggleSubtask)
 		protected.DELETE("/subtasks/:id", handlers.DeleteSubtask)
 

@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"time"
+	"todo-list/backend/database"
 	"todo-list/backend/models"
 	"todo-list/backend/repository"
 )
@@ -141,5 +142,7 @@ func UnarchiveTodo(userID uint, id uint) (*models.Todo, error) {
 }
 
 func DeleteTodo(userID uint, id uint) error {
+	// Cascade-delete subtasks
+	database.DB.Where("user_id = ? AND todo_id = ?", userID, id).Delete(&models.Subtask{})
 	return repository.Delete(userID, id)
 }

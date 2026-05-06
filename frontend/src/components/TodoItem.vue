@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import type { Todo, Subtask } from '../types/todo'
 import { useTodos } from '../stores/todo'
 import { useRouter } from 'vue-router'
@@ -25,6 +25,10 @@ const showConfirm = ref(false)
 const showSubtasks = ref(false)
 const subtasks = ref<Subtask[]>([])
 const subInput = ref('')
+const editingSubtask = ref(0)
+const editSubtitle = ref('')
+
+onMounted(() => { loadSubtasks() })
 
 const isOverdue = computed(() => {
   if (!props.todo.due_date || props.todo.completed) return false
@@ -37,7 +41,6 @@ const isDueToday = computed(() => {
 })
 
 async function loadSubtasks() {
-  if (!showSubtasks.value) return
   subtasks.value = await store.fetchSubtasks(props.todo.id)
 }
 
@@ -60,10 +63,25 @@ async function deleteSubtask(id: number) {
   loadSubtasks()
 }
 
-const subProgress = computed(() => {
-  if (subtasks.value.length === 0) return null
-  return subtasks.value.filter(s => s.completed).length
-})
+function startEditSubtask(st: Subtask) {
+  editingSubtask.value = st.id
+  editSubtitle.value = st.title
+}
+
+async function saveEditSubtask(id: number) {
+  if (!editSubtitle.value.trim()) { editingSubtask.value = 0; return }
+  try {
+    await api.updateSubtask(id, { title: editSubtitle.value.trim() })
+    loadSubtasks()
+  } catch { /* silent */ }
+  editingSubtask.value = 0
+}
+
+function cancelEditSubtask() {
+  editingSubtask.value = 0
+}
+
+const subProgress = computed(() => subtasks.value.filter(s => s.completed).length)
 
 function toggleSubtasks() {
   showSubtasks.value = !showSubtasks.value
@@ -107,6 +125,7 @@ function openDetail() {
 function formatDate(d: string) { return new Date(d).toLocaleDateString('zh-CN') }
 function priorityLabel(p: string) { return { low: '低', medium: '中', high: '高' }[p] || p }
 function effortLabel(e: string) { return { easy: '简单', medium: '中等', hard: '困难' }[e] || '' }
+function recurrenceLabel(r: string) { return { daily: '每天', weekly: '每周', monthly: '每月' }[r] || '' }
 function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t => t.trim()) : [] }
 </script>
 
@@ -117,7 +136,7 @@ function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t =>
       'border-gray-100 dark:border-gray-800': !isOverdue && !isDueToday,
       'border-red-300 dark:border-red-800 bg-red-50/30 dark:bg-red-950/20': isOverdue,
       'border-amber-300 dark:border-amber-800 bg-amber-50/30 dark:bg-amber-950/20': isDueToday,
-      'opacity-60': todo.completed,
+      'opacity-60': todo.completed && !editing,
       'border-l-[3px] border-l-gray-300 dark:border-l-gray-600': todo.effort === 'easy',
       'border-l-[3px] border-l-amber-400 dark:border-l-amber-600': todo.effort === 'medium',
       'border-l-[3px] border-l-red-400 dark:border-l-red-600': todo.effort === 'hard',
@@ -140,7 +159,7 @@ function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t =>
                 class="text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
                 {{ tag }}
               </span>
-              <span v-if="subProgress !== null && subtasks.length > 0" class="flex items-center gap-1.5">
+              <span v-if="subtasks.length > 0" class="flex items-center gap-1.5">
                 <span class="w-12 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
                   <span class="block h-full rounded-full bg-indigo-400 transition-all" :style="{ width: (subProgress / subtasks.length * 100) + '%' }" />
                 </span>
@@ -156,7 +175,13 @@ function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t =>
               'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400': todo.priority === 'medium',
               'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400': todo.priority === 'high',
             }">{{ priorityLabel(todo.priority) }}</span>
-          <span v-if="todo.recurrence" class="text-[11px] text-gray-400" title="重复任务">&#x21bb;</span>
+          <span v-if="todo.effort" class="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+            :class="{
+              'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400': todo.effort === 'easy',
+              'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400': todo.effort === 'medium',
+              'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400': todo.effort === 'hard',
+            }">{{ effortLabel(todo.effort) }}</span>
+          <span v-if="todo.recurrence" class="text-[11px] text-gray-400" :title="'重复: ' + recurrenceLabel(todo.recurrence)">&#x21bb; {{ recurrenceLabel(todo.recurrence) }}</span>
           <span v-if="todo.due_date" class="text-[11px]"
             :class="{
               'text-red-500 font-semibold': isOverdue,
@@ -165,12 +190,13 @@ function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t =>
             }">{{ isOverdue ? '已过期 ' + formatDate(todo.due_date) : isDueToday ? '今天' : formatDate(todo.due_date) }}</span>
 
           <!-- Subtask toggle -->
-          <button @click.stop="toggleSubtasks" class="w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 dark:text-gray-600 hover:text-indigo-500 transition-colors"
+          <button @click.stop="toggleSubtasks" class="w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 dark:text-gray-600 hover:text-indigo-500 transition-colors relative"
             :class="{ 'text-indigo-500': showSubtasks }">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
               <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
             </svg>
+            <span v-if="subtasks.length > 0 && !showSubtasks" class="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-indigo-500 text-white text-[9px] font-bold leading-none px-0.5">{{ subtasks.length }}</span>
           </button>
 
           <button @click.stop="startEdit"
@@ -199,6 +225,18 @@ function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t =>
             { label: '中', value: 'medium' },
             { label: '高', value: 'high' },
           ]" />
+          <Select v-model="editEffort" :options="[
+            { label: '工作量', value: '' },
+            { label: '简单', value: 'easy' },
+            { label: '中等', value: 'medium' },
+            { label: '困难', value: 'hard' },
+          ]" />
+          <Select v-model="editRecurrence" :options="[
+            { label: '不重复', value: '' },
+            { label: '每天', value: 'daily' },
+            { label: '每周', value: 'weekly' },
+            { label: '每月', value: 'monthly' },
+          ]" />
           <input v-model="editTags" class="w-[120px] px-2.5 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 dark:text-gray-100 outline-none" placeholder="标签" />
           <button @click="saveEdit" class="px-3 py-2 bg-indigo-500 text-white rounded-lg text-sm font-semibold">保存</button>
           <button @click="cancelEdit" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-semibold">取消</button>
@@ -208,10 +246,19 @@ function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t =>
 
     <!-- Subtasks panel -->
     <div v-if="showSubtasks" class="px-4 pb-3 border-t border-gray-50 dark:border-gray-800 pt-2" @click.stop>
-      <div v-for="st in subtasks" :key="st.id" class="flex items-center gap-2 py-1.5">
+      <div v-for="st in subtasks" :key="st.id" class="flex items-center gap-2 py-1.5 group">
         <input type="checkbox" :checked="st.completed" @change="toggleSubtask(st.id)"
           class="w-[15px] h-[15px] accent-indigo-500 cursor-pointer shrink-0" />
-        <span class="text-[13px] flex-1" :class="{ 'line-through text-gray-300 dark:text-gray-600': st.completed, 'text-gray-600 dark:text-gray-400': !st.completed }">{{ st.title }}</span>
+        <template v-if="editingSubtask === st.id">
+          <input v-model="editSubtitle" @keydown.enter="saveEditSubtask(st.id)" @keydown.escape="cancelEditSubtask()" @blur="saveEditSubtask(st.id)"
+            class="flex-1 px-1.5 py-0.5 text-[13px] border border-indigo-400 rounded bg-white dark:bg-gray-800 dark:text-gray-100 outline-none" />
+        </template>
+        <template v-else>
+          <span @dblclick="startEditSubtask(st)" class="text-[13px] flex-1 cursor-default" :class="{ 'line-through text-gray-300 dark:text-gray-600': st.completed, 'text-gray-600 dark:text-gray-400': !st.completed }">{{ st.title }}</span>
+          <button @click="startEditSubtask(st)" class="opacity-0 group-hover:opacity-100 text-gray-300 dark:text-gray-600 hover:text-indigo-500 shrink-0 transition-opacity">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+        </template>
         <button @click="deleteSubtask(st.id)" class="text-gray-300 dark:text-gray-700 hover:text-red-400 shrink-0">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
