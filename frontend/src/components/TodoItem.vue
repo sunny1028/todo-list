@@ -106,6 +106,7 @@ function openDetail() {
 
 function formatDate(d: string) { return new Date(d).toLocaleDateString('zh-CN') }
 function priorityLabel(p: string) { return { low: '低', medium: '中', high: '高' }[p] || p }
+function effortLabel(e: string) { return { easy: '简单', medium: '中等', hard: '困难' }[e] || '' }
 function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t => t.trim()) : [] }
 </script>
 

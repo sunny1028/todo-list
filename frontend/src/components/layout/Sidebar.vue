@@ -62,10 +62,13 @@ onMounted(() => {
     </div>
 
     <!-- New list form -->
-    <form v-if="showNewList" @submit.prevent="createList" class="flex gap-1 mb-2 px-2">
-      <input v-model="newListName" placeholder="列表名称" class="flex-1 px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 dark:text-gray-100 outline-none" />
-      <button type="submit" class="px-2 py-1 text-xs bg-indigo-500 text-white rounded-lg">创建</button>
-    </form>
+    <div v-if="showNewList" class="mb-2 px-2 space-y-1.5">
+      <input v-model="newListName" @keydown.enter.prevent="createList" @keydown.escape="showNewList = false" placeholder="列表名称" class="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 dark:text-gray-100 outline-none" />
+      <div class="flex gap-1">
+        <button type="button" @click="createList" class="px-2 py-1 text-xs bg-indigo-500 text-white rounded-lg">创建</button>
+        <button type="button" @click="showNewList = false" class="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg">取消</button>
+      </div>
+    </div>
 
     <!-- All todos -->
     <button
