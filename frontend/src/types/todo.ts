@@ -11,6 +11,8 @@ export interface Todo {
   due_date: string | null
   list_id: number
   sort_order: number
+  subtask_count: number
+  subtask_completed: number
   created_at: string
   updated_at: string
 }
@@ -20,6 +22,7 @@ export interface Subtask {
   todo_id: number
   title: string
   completed: boolean
+  sort_order: number
 }
 
 export interface List {

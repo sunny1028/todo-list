@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import type { Todo, Subtask } from '../types/todo'
 import { useTodos } from '../stores/todo'
 import { useRouter } from 'vue-router'
@@ -28,8 +28,6 @@ const subInput = ref('')
 const editingSubtask = ref(0)
 const editSubtitle = ref('')
 
-onMounted(() => { loadSubtasks() })
-
 const isOverdue = computed(() => {
   if (!props.todo.due_date || props.todo.completed) return false
   return new Date(props.todo.due_date) < new Date(new Date().toDateString())
@@ -44,23 +42,52 @@ async function loadSubtasks() {
   subtasks.value = await store.fetchSubtasks(props.todo.id)
 }
 
+function bumpParentCounts() {
+  props.todo.subtask_count = subtasks.value.length
+  props.todo.subtask_completed = subtasks.value.filter(s => s.completed).length
+}
+
 async function addSubtask() {
   if (!subInput.value.trim()) return
   try {
-    await api.createSubtask(props.todo.id, subInput.value.trim())
+    const res = await api.createSubtask(props.todo.id, subInput.value.trim())
     subInput.value = ''
-    loadSubtasks()
+    subtasks.value.push(res.data)
+    props.todo.subtask_count++
   } catch { /* silent */ }
 }
 
 async function toggleSubtask(id: number) {
-  await api.toggleSubtask(id)
-  loadSubtasks()
+  const st = subtasks.value.find(s => s.id === id)
+  if (!st) return
+  st.completed = !st.completed
+  props.todo.subtask_completed += st.completed ? 1 : -1
+  // Auto-complete parent when all subtasks are done
+  if (subtasks.value.every(s => s.completed)) {
+    props.todo.completed = true
+  } else {
+    props.todo.completed = false
+  }
+  try {
+    await api.toggleSubtask(id)
+  } catch {
+    st.completed = !st.completed
+    props.todo.subtask_completed += st.completed ? 1 : -1
+  }
 }
 
 async function deleteSubtask(id: number) {
-  await api.deleteSubtask(id)
-  loadSubtasks()
+  const idx = subtasks.value.findIndex(s => s.id === id)
+  if (idx === -1) return
+  const wasCompleted = subtasks.value[idx].completed
+  subtasks.value.splice(idx, 1)
+  props.todo.subtask_count--
+  if (wasCompleted) props.todo.subtask_completed--
+  try {
+    await api.deleteSubtask(id)
+  } catch {
+    loadSubtasks().then(() => bumpParentCounts())
+  }
 }
 
 function startEditSubtask(st: Subtask) {
@@ -72,7 +99,7 @@ async function saveEditSubtask(id: number) {
   if (!editSubtitle.value.trim()) { editingSubtask.value = 0; return }
   try {
     await api.updateSubtask(id, { title: editSubtitle.value.trim() })
-    loadSubtasks()
+    loadSubtasks().then(() => bumpParentCounts())
   } catch { /* silent */ }
   editingSubtask.value = 0
 }
@@ -81,7 +108,33 @@ function cancelEditSubtask() {
   editingSubtask.value = 0
 }
 
-const subProgress = computed(() => subtasks.value.filter(s => s.completed).length)
+let dragIndex: number | null = null
+
+function onSubtaskDragstart(e: DragEvent, idx: number) {
+  dragIndex = idx
+  const el = e.target as HTMLElement
+  el.classList.add('opacity-50')
+  e.dataTransfer!.effectAllowed = 'move'
+}
+
+function onSubtaskDragover(e: DragEvent, _idx: number) {
+  e.preventDefault()
+  e.dataTransfer!.dropEffect = 'move'
+}
+
+function onSubtaskDrop(_e: DragEvent, idx: number) {
+  if (dragIndex === null || dragIndex === idx) return
+  const items = [...subtasks.value]
+  const [moved] = items.splice(dragIndex, 1)
+  items.splice(idx, 0, moved)
+  subtasks.value = items
+  dragIndex = null
+  api.reorderSubtasks(items.map(s => s.id))
+}
+
+function onSubtaskDragend() {
+  dragIndex = null
+}
 
 function toggleSubtasks() {
   showSubtasks.value = !showSubtasks.value
@@ -115,7 +168,17 @@ async function saveEdit() {
   editing.value = false
 }
 
-async function handleToggle() { await store.toggle(props.todo.id) }
+async function handleToggle() {
+  const prev = props.todo.completed
+  props.todo.completed = !prev
+  try {
+    const res = await api.toggleTodo(props.todo.id)
+    const idx = store.todos.findIndex((t) => t.id === props.todo.id)
+    if (idx !== -1) store.todos[idx] = res.data
+  } catch {
+    props.todo.completed = prev
+  }
+}
 async function handleDelete() { await store.removeTodo(props.todo.id) }
 
 function openDetail() {
@@ -159,11 +222,11 @@ function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t =>
                 class="text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
                 {{ tag }}
               </span>
-              <span v-if="subtasks.length > 0" class="flex items-center gap-1.5">
+              <span v-if="todo.subtask_count > 0" class="flex items-center gap-1.5">
                 <span class="w-12 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                  <span class="block h-full rounded-full bg-indigo-400 transition-all" :style="{ width: (subProgress / subtasks.length * 100) + '%' }" />
+                  <span class="block h-full rounded-full bg-indigo-400 transition-all" :style="{ width: (todo.subtask_completed / todo.subtask_count * 100) + '%' }" />
                 </span>
-                <span class="text-[10px] text-gray-400">{{ subProgress }}/{{ subtasks.length }}</span>
+                <span class="text-[10px] text-gray-400">{{ todo.subtask_completed }}/{{ todo.subtask_count }}</span>
               </span>
             </div>
           </div>
@@ -196,7 +259,7 @@ function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t =>
               <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
               <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
             </svg>
-            <span v-if="subtasks.length > 0 && !showSubtasks" class="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-indigo-500 text-white text-[9px] font-bold leading-none px-0.5">{{ subtasks.length }}</span>
+            <span v-if="todo.subtask_count > 0 && !showSubtasks" class="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-indigo-500 text-white text-[9px] font-bold leading-none px-0.5">{{ todo.subtask_count }}</span>
           </button>
 
           <button @click.stop="startEdit"
@@ -245,10 +308,17 @@ function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t =>
     </div>
 
     <!-- Subtasks panel -->
-    <div v-if="showSubtasks" class="px-4 pb-3 border-t border-gray-50 dark:border-gray-800 pt-2" @click.stop>
-      <div v-for="st in subtasks" :key="st.id" class="flex items-center gap-2 py-1.5 group">
-        <input type="checkbox" :checked="st.completed" @change="toggleSubtask(st.id)"
-          class="w-[15px] h-[15px] accent-indigo-500 cursor-pointer shrink-0" />
+    <Transition name="subtask-panel">
+      <div v-if="showSubtasks" class="px-4 pb-3 border-t border-gray-50 dark:border-gray-800 pt-2" @click.stop>
+        <div v-for="(st, idx) in subtasks" :key="st.id"
+          class="flex items-center gap-2 py-1.5 group"
+          draggable="true"
+          @dragstart="onSubtaskDragstart($event, idx)"
+          @dragover="onSubtaskDragover($event, idx)"
+          @drop="onSubtaskDrop($event, idx)"
+          @dragend="onSubtaskDragend">
+          <input type="checkbox" :checked="st.completed" @change="toggleSubtask(st.id)"
+            class="w-[15px] h-[15px] accent-indigo-500 cursor-pointer shrink-0" />
         <template v-if="editingSubtask === st.id">
           <input v-model="editSubtitle" @keydown.enter="saveEditSubtask(st.id)" @keydown.escape="cancelEditSubtask()" @blur="saveEditSubtask(st.id)"
             class="flex-1 px-1.5 py-0.5 text-[13px] border border-indigo-400 rounded bg-white dark:bg-gray-800 dark:text-gray-100 outline-none" />
@@ -267,7 +337,8 @@ function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t =>
         <input v-model="subInput" class="flex-1 px-2.5 py-1.5 border border-gray-150 dark:border-gray-800 rounded-lg text-xs bg-gray-50 dark:bg-gray-800 dark:text-gray-200 outline-none" placeholder="添加子任务…" />
         <button type="submit" class="px-3 py-1.5 bg-indigo-500 text-white rounded-lg text-xs font-semibold">添加</button>
       </form>
-    </div>
+      </div>
+    </Transition>
   </div>
 
   <ConfirmDialog
@@ -278,3 +349,21 @@ function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t =>
     @cancel="showConfirm = false"
   />
 </template>
+
+<style scoped>
+.subtask-panel-enter-active,
+.subtask-panel-leave-active {
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+.subtask-panel-enter-from,
+.subtask-panel-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+.subtask-panel-enter-to,
+.subtask-panel-leave-from {
+  opacity: 1;
+  max-height: 500px;
+}
+</style>

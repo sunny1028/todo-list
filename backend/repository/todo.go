@@ -39,7 +39,38 @@ func FindAll(userID uint, listID uint, status, priority, tag, search string) ([]
 	}
 
 	err := q.Order("sort_order ASC, created_at DESC").Find(&todos).Error
-	return todos, err
+	if err != nil {
+		return todos, err
+	}
+
+	if len(todos) > 0 {
+		ids := make([]uint, len(todos))
+		for i, t := range todos {
+			ids[i] = t.ID
+		}
+		type countRow struct {
+			TodoID    uint
+			Total     int
+			Completed int
+		}
+		var rows []countRow
+		database.DB.Model(&models.Subtask{}).
+			Select("todo_id, count(*) as total, sum(case when completed then 1 else 0 end) as completed").
+			Where("todo_id IN ?", ids).
+			Group("todo_id").
+			Scan(&rows)
+		for i := range todos {
+			for _, r := range rows {
+				if r.TodoID == todos[i].ID {
+					todos[i].SubtaskCount = r.Total
+					todos[i].SubtaskCompleted = r.Completed
+					break
+				}
+			}
+		}
+	}
+
+	return todos, nil
 }
 
 func FindByID(userID uint, id uint) (*models.Todo, error) {
@@ -48,6 +79,12 @@ func FindByID(userID uint, id uint) (*models.Todo, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Populate subtask counts
+	var total, completed int64
+	database.DB.Model(&models.Subtask{}).Where("todo_id = ?", id).Count(&total)
+	database.DB.Model(&models.Subtask{}).Where("todo_id = ? AND completed = ?", id, true).Count(&completed)
+	todo.SubtaskCount = int(total)
+	todo.SubtaskCompleted = int(completed)
 	return &todo, nil
 }
 

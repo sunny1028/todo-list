@@ -14,7 +14,7 @@ func ListSubtasks(c *gin.Context) {
 	userID := c.GetUint("user_id")
 	todoID := c.Param("id")
 	var subtasks []models.Subtask
-	database.DB.Where("user_id = ? AND todo_id = ?", userID, todoID).Find(&subtasks)
+	database.DB.Where("user_id = ? AND todo_id = ?", userID, todoID).Order("sort_order ASC").Find(&subtasks)
 	c.JSON(http.StatusOK, subtasks)
 }
 
@@ -32,6 +32,10 @@ func CreateSubtask(c *gin.Context) {
 	}
 	st.UserID = userID
 	st.TodoID = uint(todoID)
+	// Auto-set sort order
+	var maxOrder int
+	database.DB.Model(&models.Subtask{}).Where("todo_id = ?", st.TodoID).Select("COALESCE(MAX(sort_order), 0)").Scan(&maxOrder)
+	st.SortOrder = maxOrder + 1
 	database.DB.Create(&st)
 	c.JSON(http.StatusCreated, st)
 }
@@ -88,6 +92,23 @@ func UpdateSubtask(c *gin.Context) {
 	}
 	database.DB.Save(&st)
 	c.JSON(http.StatusOK, st)
+}
+
+type subtaskReorderRequest struct {
+	IDs []uint `json:"ids" binding:"required"`
+}
+
+func ReorderSubtasks(c *gin.Context) {
+	userID := c.GetUint("user_id")
+	var req subtaskReorderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	for i, id := range req.IDs {
+		database.DB.Model(&models.Subtask{}).Where("user_id = ? AND id = ?", userID, id).Update("sort_order", i)
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "reordered"})
 }
 
 func DeleteSubtask(c *gin.Context) {

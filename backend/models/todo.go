@@ -18,4 +18,6 @@ type Todo struct {
 	SortOrder   int       `json:"sort_order" gorm:"default:0"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
+	SubtaskCount    int `json:"subtask_count" gorm:"-"`
+	SubtaskCompleted int `json:"subtask_completed" gorm:"-"`
 }

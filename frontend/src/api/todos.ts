@@ -55,6 +55,9 @@ export function updateSubtask(id: number, data: { title: string }) {
 export function toggleSubtask(id: number) {
   return api.patch<Subtask>(`/subtasks/${id}/toggle`)
 }
+export function reorderSubtasks(ids: number[]) {
+  return api.put('/subtasks/reorder', { ids })
+}
 export function deleteSubtask(id: number) {
   return api.delete(`/subtasks/${id}`)
 }
