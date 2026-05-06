@@ -54,6 +54,12 @@ func Setup(corsOrigin string) *gin.Engine {
 		protected.PUT("/subtasks/reorder", handlers.ReorderSubtasks)
 		protected.DELETE("/subtasks/:id", handlers.DeleteSubtask)
 
+		// Focus
+		protected.POST("/focus/start", handlers.StartFocus)
+		protected.PATCH("/focus/:id/complete", handlers.CompleteFocus)
+		protected.GET("/focus/sessions", handlers.ListFocusSessions)
+		protected.GET("/focus/stats", handlers.GetFocusStats)
+
 		// Attachments
 		protected.GET("/todos/:id/attachments", handlers.ListAttachments)
 		protected.POST("/todos/:id/attachments", handlers.UploadAttachment)

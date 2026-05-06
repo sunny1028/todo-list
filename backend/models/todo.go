@@ -20,4 +20,5 @@ type Todo struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 	SubtaskCount    int `json:"subtask_count" gorm:"-"`
 	SubtaskCompleted int `json:"subtask_completed" gorm:"-"`
+	FocusMinutes     int `json:"focus_minutes" gorm:"default:0"`
 }

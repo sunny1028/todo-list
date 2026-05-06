@@ -85,3 +85,22 @@ export interface Attachment {
   size: number
   created_at: string
 }
+
+export interface FocusSession {
+  id: number
+  user_id: number
+  todo_id: number | null
+  todo_title: string
+  duration_min: number
+  completed: boolean
+  started_at: string
+  ended_at: string | null
+  created_at: string
+}
+
+export interface FocusStats {
+  today_minutes: number
+  total_minutes: number
+  total_sessions: number
+  streak_days: number
+}

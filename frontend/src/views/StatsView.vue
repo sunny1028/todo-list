@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { useTodos } from '../stores/todo'
-import type { Stats } from '../types/todo'
+import type { Stats, FocusStats } from '../types/todo'
+import * as focusApi from '../api/focus'
 
 const store = useTodos()
 const stats = ref<Stats | null>(null)
+const focusStats = ref<FocusStats | null>(null)
 
 const priorityLabels: Record<string, string> = { low: '低', medium: '中', high: '高' }
 const priorityColors: Record<string, string> = { low: 'bg-blue-500', medium: 'bg-yellow-500', high: 'bg-red-500' }
 
 async function load() {
   stats.value = await store.fetchStats()
+  focusApi.getFocusStats().then(r => { focusStats.value = r.data }).catch(() => {})
 }
 
 onMounted(load)
@@ -48,6 +51,26 @@ function tagBarWidth(count: number, max: number) {
       <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 text-center">
         <div class="text-2xl font-bold text-emerald-500">{{ stats.completed }}</div>
         <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">已完成</div>
+      </div>
+    </div>
+
+    <!-- Focus stats -->
+    <div v-if="focusStats" class="grid grid-cols-4 gap-3 mb-6">
+      <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 text-center">
+        <div class="text-2xl font-bold text-indigo-500">{{ focusStats.today_minutes }}</div>
+        <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">今日专注(分)</div>
+      </div>
+      <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 text-center">
+        <div class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ focusStats.total_sessions }}</div>
+        <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">总次数</div>
+      </div>
+      <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 text-center">
+        <div class="text-2xl font-bold text-emerald-500">{{ focusStats.streak_days }}</div>
+        <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">连续天数</div>
+      </div>
+      <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 text-center">
+        <div class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ focusStats.total_minutes }}</div>
+        <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">累计(分)</div>
       </div>
     </div>
 
