@@ -38,7 +38,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
     <AppHeader />
     <div v-if="showBanner" class="bg-amber-50 dark:bg-amber-950 border-b border-amber-200 dark:border-amber-800 px-4 py-2 text-sm text-amber-800 dark:text-amber-200 flex items-center justify-between">
       <span>匿名使用中，换浏览器或清缓存将丢失数据。</span>
-      <button @click="router.push('/login')" class="underline font-medium hover:text-amber-600 dark:hover:text-amber-300 ml-2 whitespace-nowrap">设置账号</button>
+      <button @click="router.push('/login')" class="underline font-medium hover:text-amber-600 dark:hover:text-amber-300 ml-2 whitespace-nowrap">注册账号</button>
     </div>
     <div class="flex">
       <Sidebar />

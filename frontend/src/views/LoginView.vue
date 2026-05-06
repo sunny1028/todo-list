@@ -66,10 +66,10 @@ function handleKeydown(e: KeyboardEvent) {
   <div class="min-h-[80vh] flex items-center justify-center">
     <div class="w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm p-8">
       <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2 text-center">
-        {{ mode === 'bind' ? '设置账号' : '登录' }}
+        {{ mode === 'bind' ? '注册账号' : '登录' }}
       </h2>
       <p class="text-sm text-gray-400 dark:text-gray-500 text-center mb-6">
-        {{ mode === 'bind' ? '设置用户名和密码，永久保存你的数据' : '用已有的账号登录，恢复你的数据' }}
+        {{ mode === 'bind' ? '注册用户名和密码，永久保存你的数据' : '用已有的账号登录，恢复你的数据' }}
       </p>
 
       <div class="space-y-3">
@@ -97,13 +97,13 @@ function handleKeydown(e: KeyboardEvent) {
           :disabled="loading || !username.trim() || !password.trim()"
           class="w-full py-2.5 bg-indigo-500 text-white rounded-xl text-sm font-semibold hover:bg-indigo-600 disabled:opacity-40 disabled:cursor-default transition-colors"
         >
-          {{ loading ? '处理中…' : (mode === 'bind' ? '设置账号' : '登录') }}
+          {{ loading ? '处理中…' : (mode === 'bind' ? '注册账号' : '登录') }}
         </button>
       </div>
 
       <div class="mt-4 text-center">
         <button @click="mode = mode === 'bind' ? 'login' : 'bind'" class="text-xs text-gray-400 hover:text-indigo-500 transition-colors">
-          {{ mode === 'bind' ? '已有账号？去登录' : '没有账号？设置一个' }}
+          {{ mode === 'bind' ? '已有账号？去登录' : '没有账号？注册一个' }}
         </button>
       </div>
     </div>
