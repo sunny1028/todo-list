@@ -119,6 +119,46 @@ type loginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+func AuthMerge(c *gin.Context) {
+	userID := c.GetUint("user_id")
+	var req loginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "username and password required"})
+		return
+	}
+
+	var target models.User
+	if database.DB.Where("username = ?", req.Username).First(&target).Error != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(target.PasswordHash), []byte(req.Password)); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
+		return
+	}
+
+	// Move all data from current user to target user
+	uid := userID
+	tid := target.ID
+	database.DB.Model(&models.Todo{}).Where("user_id = ?", uid).Update("user_id", tid)
+	database.DB.Model(&models.List{}).Where("user_id = ?", uid).Update("user_id", tid)
+	database.DB.Model(&models.Subtask{}).Where("user_id = ?", uid).Update("user_id", tid)
+	database.DB.Model(&models.Attachment{}).Where("user_id = ?", uid).Update("user_id", tid)
+	database.DB.Delete(&models.User{}, uid)
+
+	token, err := generateJWT(target.ID, target.UUID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"token":        token,
+		"has_password": target.HasPassword,
+	})
+}
+
 func AuthLogin(c *gin.Context) {
 	var req loginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

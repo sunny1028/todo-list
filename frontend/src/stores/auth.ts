@@ -58,6 +58,21 @@ export const useAuth = defineStore('auth', () => {
     return res.data
   }
 
+  async function mergeLogin(username: string, password: string) {
+    const res = await axios.post('/api/auth/merge', { username, password }, {
+      headers: { Authorization: `Bearer ${token.value}` },
+    })
+    token.value = res.data.token
+    hasPassword.value = res.data.has_password
+    localStorage.setItem('auth_token', token.value)
+    try {
+      const payload = JSON.parse(atob(res.data.token.split('.')[1]))
+      uuid.value = payload.uuid
+      localStorage.setItem('uuid', payload.uuid)
+    } catch { /* ignore */ }
+    return res.data
+  }
+
   async function logout() {
     localStorage.removeItem('auth_token')
     localStorage.removeItem('uuid')
@@ -67,5 +82,5 @@ export const useAuth = defineStore('auth', () => {
     await init()
   }
 
-  return { uuid, token, hasPassword, initialized, init, bind, login, logout }
+  return { uuid, token, hasPassword, initialized, init, bind, login, mergeLogin, logout }
 })

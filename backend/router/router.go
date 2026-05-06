@@ -30,6 +30,7 @@ func Setup(corsOrigin string) *gin.Engine {
 	protected.Use(middleware.AuthRequired())
 	{
 		protected.POST("/auth/bind", handlers.AuthBind)
+		protected.POST("/auth/merge", handlers.AuthMerge)
 
 		// Todos
 		protected.GET("/todos", handlers.ListTodos)

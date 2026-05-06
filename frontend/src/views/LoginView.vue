@@ -2,8 +2,11 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../stores/auth'
+import { useTodos } from '../stores/todo'
+import ConfirmDialog from '../components/ui/ConfirmDialog.vue'
 
 const auth = useAuth()
+const todoStore = useTodos()
 const router = useRouter()
 
 const username = ref('')
@@ -11,17 +14,37 @@ const password = ref('')
 const error = ref('')
 const loading = ref(false)
 const mode = ref<'bind' | 'login'>(auth.hasPassword ? 'login' : 'bind')
+const showMergeConfirm = ref(false)
+
+// Check if anonymous user has data
+let anonymousCount = 0
+if (mode.value === 'login') {
+  todoStore.fetchTodos().then(() => {
+    anonymousCount = todoStore.todos.length
+  })
+}
 
 async function submit() {
   if (!username.value.trim() || !password.value.trim()) {
     error.value = '请填写用户名和密码'
     return
   }
+
+  if (mode.value === 'login' && anonymousCount > 0) {
+    showMergeConfirm.value = true
+    return
+  }
+  await doSubmit(false)
+}
+
+async function doSubmit(merge: boolean) {
   loading.value = true
   error.value = ''
   try {
     if (mode.value === 'bind') {
       await auth.bind(username.value.trim(), password.value)
+    } else if (merge) {
+      await auth.mergeLogin(username.value.trim(), password.value)
     } else {
       await auth.login(username.value.trim(), password.value)
     }
@@ -30,6 +53,7 @@ async function submit() {
     error.value = e.response?.data?.error || '操作失败'
   } finally {
     loading.value = false
+    showMergeConfirm.value = false
   }
 }
 
@@ -84,4 +108,14 @@ function handleKeydown(e: KeyboardEvent) {
       </div>
     </div>
   </div>
+
+  <ConfirmDialog
+    :open="showMergeConfirm"
+    title="合并数据"
+    :message="`当前有 ${anonymousCount} 条匿名待办数据。是否将这些数据合并到账号「${username}」中？`"
+    confirm-text="合并"
+    cancel-text="不合并"
+    @confirm="doSubmit(true)"
+    @cancel="doSubmit(false)"
+  />
 </template>
