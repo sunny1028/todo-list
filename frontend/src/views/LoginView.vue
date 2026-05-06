@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '../stores/auth'
 import { useTodos } from '../stores/todo'
 import ConfirmDialog from '../components/ui/ConfirmDialog.vue'
@@ -8,12 +8,15 @@ import ConfirmDialog from '../components/ui/ConfirmDialog.vue'
 const auth = useAuth()
 const todoStore = useTodos()
 const router = useRouter()
+const route = useRoute()
 
 const username = ref('')
 const password = ref('')
 const error = ref('')
 const loading = ref(false)
-const mode = ref<'bind' | 'login'>(auth.hasPassword ? 'login' : 'bind')
+const mode = ref<'bind' | 'login'>(
+  route.query.mode === 'login' ? 'login' : (auth.hasPassword ? 'login' : 'bind')
+)
 const showMergeConfirm = ref(false)
 const anonymousCount = ref(0)
 
