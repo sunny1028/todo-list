@@ -14,31 +14,25 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build backend image
+      - name: Login to Harbor
         run: |
-          docker build -t todo-backend:${{ github.ref_name }} ./backend
+          echo "${{ secrets.HARBOR_PASSWORD }}" | docker login ${{ secrets.HARBOR_HOST }} -u ${{ secrets.HARBOR_USERNAME }} --password-stdin
 
-      - name: Build frontend image
-        run: |
-          docker build -t todo-frontend:${{ github.ref_name }} ./frontend
-
-      - name: Save and compress images
+      - name: Build and push backend image
         run: |
           TAG=${{ github.ref_name }}
-          docker save todo-backend:${TAG} | gzip > backend-${TAG}.tar.gz
-          docker save todo-frontend:${TAG} | gzip > frontend-${TAG}.tar.gz
-          ls -lh *.tar.gz
+          HOST=${{ secrets.HARBOR_HOST }}
+          IMAGE="${HOST}/xys/todo-backend:${TAG}"
+          docker build -t ${IMAGE} ./backend
+          docker push ${IMAGE}
 
-      - name: Upload to OSS
+      - name: Build and push frontend image
         run: |
           TAG=${{ github.ref_name }}
-          ENDPOINT=${{ secrets.OSS_ENDPOINT }}
-          BUCKET=${{ secrets.OSS_BUCKET_NAME }}
-          curl -fsSL -o ossutil64 https://gosspublic.alicdn.com/ossutil/1.7.21/ossutil64
-          chmod +x ossutil64
-          ./ossutil64 config -e https://${ENDPOINT} -i ${{ secrets.OSS_ACCESS_KEY }} -k ${{ secrets.OSS_SECRET_KEY }} -L EN -c ./ossconfig
-          ./ossutil64 cp backend-${TAG}.tar.gz oss://${BUCKET}/images/todo-deploy/backend-${TAG}.tar.gz -c ./ossconfig -f --acl public-read
-          ./ossutil64 cp frontend-${TAG}.tar.gz oss://${BUCKET}/images/todo-deploy/frontend-${TAG}.tar.gz -c ./ossconfig -f --acl public-read
+          HOST=${{ secrets.HARBOR_HOST }}
+          IMAGE="${HOST}/xys/todo-frontend:${TAG}"
+          docker build -t ${IMAGE} ./frontend
+          docker push ${IMAGE}
 
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.9.1
@@ -50,10 +44,11 @@ jobs:
           ssh -o StrictHostKeyChecking=accept-new -p 20004 root@218.4.33.10 << 'DEPLOY'
             set -e
             TAG=${{ github.ref_name }}
-            BUCKET=${{ secrets.OSS_BUCKET_NAME }}
-            ENDPOINT=${{ secrets.OSS_ENDPOINT }}
+            HOST=${{ secrets.HARBOR_HOST }}
+            HARBOR_PASSWORD=${{ secrets.HARBOR_PASSWORD }}
+            HARBOR_USERNAME=${{ secrets.HARBOR_USERNAME }}
 
-            BASE_URL="https://${BUCKET}.${ENDPOINT}/images/todo-deploy"
+            echo "${HARBOR_PASSWORD}" | docker login ${HOST} -u ${HARBOR_USERNAME} --password-stdin
 
             docker network create todo-net 2>/dev/null || true
 
@@ -62,11 +57,8 @@ jobs:
             docker rm todo-backend 2>/dev/null || true
             docker rm todo-frontend 2>/dev/null || true
 
-            curl -fsSL -o /tmp/backend.tar.gz "${BASE_URL}/backend-${TAG}.tar.gz"
-            curl -fsSL -o /tmp/frontend.tar.gz "${BASE_URL}/frontend-${TAG}.tar.gz"
-
-            gunzip -c /tmp/backend.tar.gz | docker load
-            gunzip -c /tmp/frontend.tar.gz | docker load
+            docker pull ${HOST}/xys/todo-backend:${TAG}
+            docker pull ${HOST}/xys/todo-frontend:${TAG}
 
             docker run -d --name todo-backend \
               --network todo-net \
@@ -76,15 +68,14 @@ jobs:
               -e DB_PATH=/app/data/todo.db \
               -e CORS_ORIGIN=* \
               --restart unless-stopped \
-              todo-backend:${TAG}
+              ${HOST}/xys/todo-backend:${TAG}
 
             docker run -d --name todo-frontend \
               --network todo-net \
               -p 8079:80 \
               --restart unless-stopped \
-              todo-frontend:${TAG}
+              ${HOST}/xys/todo-frontend:${TAG}
 
-            rm -f /tmp/backend.tar.gz /tmp/frontend.tar.gz
             docker image prune -f
             docker ps
           DEPLOY
