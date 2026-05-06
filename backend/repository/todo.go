@@ -80,7 +80,7 @@ func CountAll(userID uint, listID uint) (total, active, completed int64) {
 	}
 	q.Count(&total)
 	q.Where("completed = ?", false).Count(&active)
-	q.Where("completed = ?", true).Count(&completed)
+	database.DB.Model(&models.Todo{}).Where("user_id = ? AND completed = ?", userID, true).Count(&completed)
 	return
 }
 

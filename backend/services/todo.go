@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"time"
 	"todo-list/backend/models"
 	"todo-list/backend/repository"
 )
@@ -77,7 +78,7 @@ func ToggleTodo(userID uint, id uint) (*models.Todo, error) {
 	}
 
 	// If completing a recurring task, spawn next instance
-	if todo.Completed && todo.Recurrence != "" && todo.DueDate.Valid {
+	if todo.Completed && todo.Recurrence != "" {
 		next := models.Todo{
 			UserID:      todo.UserID,
 			ListID:      todo.ListID,
@@ -89,6 +90,9 @@ func ToggleTodo(userID uint, id uint) (*models.Todo, error) {
 			Recurrence:  todo.Recurrence,
 		}
 		d := todo.DueDate.Time
+		if !todo.DueDate.Valid {
+			d = time.Now()
+		}
 		switch todo.Recurrence {
 		case "daily":
 			next.DueDate = models.DateOnly{Time: d.AddDate(0, 0, 1), Valid: true}
@@ -97,9 +101,7 @@ func ToggleTodo(userID uint, id uint) (*models.Todo, error) {
 		case "monthly":
 			next.DueDate = models.DateOnly{Time: d.AddDate(0, 1, 0), Valid: true}
 		}
-		if next.DueDate.Valid {
-			CreateTodo(&next)
-		}
+		CreateTodo(&next)
 	}
 
 	return todo, nil
