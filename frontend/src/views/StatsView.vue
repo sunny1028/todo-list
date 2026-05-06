@@ -51,6 +51,24 @@ function tagBarWidth(count: number, max: number) {
       </div>
     </div>
 
+    <!-- Daily trends -->
+    <div v-if="stats.daily_trends?.length" class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 mb-6">
+      <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">近7天趋势</h3>
+      <div class="flex items-end justify-between gap-1" style="height: 80px">
+        <div v-for="t in stats.daily_trends" :key="t.date" class="flex-1 flex flex-col items-center gap-1">
+          <div class="w-full flex flex-col items-center gap-0.5" style="height: 55px; justify-content: flex-end">
+            <div v-if="t.completed > 0" class="w-full max-w-[20px] rounded-t bg-emerald-400 dark:bg-emerald-600 transition-all" :style="{ height: Math.min(t.completed * 15, 40) + 'px' }" />
+            <div v-if="t.created > 0" class="w-full max-w-[20px] rounded-t bg-indigo-300 dark:bg-indigo-700 transition-all" :style="{ height: Math.min((t.created - t.completed) * 10, 30) + 'px' }" />
+          </div>
+          <span class="text-[9px] text-gray-400 mt-1">{{ t.date.slice(5) }}</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-4 mt-3 text-[10px] text-gray-400">
+        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-indigo-300" /> 新增</span>
+        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-emerald-400" /> 完成</span>
+      </div>
+    </div>
+
     <!-- Progress bar -->
     <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 mb-6">
       <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">完成率</h3>

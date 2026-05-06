@@ -2,6 +2,7 @@ package repository
 
 import (
 	"strings"
+	"time"
 	"todo-list/backend/database"
 	"todo-list/backend/models"
 )
@@ -98,6 +99,29 @@ func CountByPriority(userID uint, listID uint) map[string]int64 {
 		out[r.Priority] = r.Count
 	}
 	return out
+}
+
+type DailyTrend struct {
+	Date      string `json:"date"`
+	Created   int64  `json:"created"`
+	Completed int64  `json:"completed"`
+}
+
+func GetDailyTrends(userID uint, days int) []DailyTrend {
+	var results []DailyTrend
+	for i := 0; i < days; i++ {
+		d := time.Now().AddDate(0, 0, -i)
+		dateStr := d.Format("2006-01-02")
+		var created, completed int64
+		database.DB.Model(&models.Todo{}).Where("user_id = ? AND date(created_at) = ?", userID, dateStr).Count(&created)
+		database.DB.Model(&models.Todo{}).Where("user_id = ? AND completed = ? AND date(updated_at) = ?", userID, true, dateStr).Count(&completed)
+		results = append(results, DailyTrend{Date: dateStr, Created: created, Completed: completed})
+	}
+	// Reverse so oldest first
+	for i, j := 0, len(results)-1; i < j; i, j = i+1, j-1 {
+		results[i], results[j] = results[j], results[i]
+	}
+	return results
 }
 
 func CountByTag(userID uint, listID uint) map[string]int64 {

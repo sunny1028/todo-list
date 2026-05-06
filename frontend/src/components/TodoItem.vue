@@ -17,6 +17,8 @@ const editing = ref(false)
 const editTitle = ref('')
 const editDescription = ref('')
 const editPriority = ref<'low' | 'medium' | 'high'>('medium')
+const editEffort = ref('')
+const editRecurrence = ref('')
 const editDueDate = ref('')
 const editTags = ref('')
 const showConfirm = ref(false)
@@ -72,6 +74,8 @@ function startEdit() {
   editTitle.value = props.todo.title
   editDescription.value = props.todo.description
   editPriority.value = props.todo.priority
+  editEffort.value = props.todo.effort || ''
+  editRecurrence.value = props.todo.recurrence || ''
   editDueDate.value = props.todo.due_date?.slice(0, 10) || ''
   editTags.value = props.todo.tags
   editing.value = true
@@ -85,6 +89,8 @@ async function saveEdit() {
     title: editTitle.value.trim(),
     description: editDescription.value.trim() || undefined,
     priority: editPriority.value,
+    effort: editEffort.value || undefined,
+    recurrence: editRecurrence.value || undefined,
     tags: editTags.value.trim() || undefined,
     due_date: editDueDate.value || null,
   })
@@ -111,6 +117,9 @@ function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t =>
       'border-red-300 dark:border-red-800 bg-red-50/30 dark:bg-red-950/20': isOverdue,
       'border-amber-300 dark:border-amber-800 bg-amber-50/30 dark:bg-amber-950/20': isDueToday,
       'opacity-60': todo.completed,
+      'border-l-[3px] border-l-gray-300 dark:border-l-gray-600': todo.effort === 'easy',
+      'border-l-[3px] border-l-amber-400 dark:border-l-amber-600': todo.effort === 'medium',
+      'border-l-[3px] border-l-red-400 dark:border-l-red-600': todo.effort === 'hard',
     }"
   >
     <!-- Main row -->
@@ -130,8 +139,11 @@ function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t =>
                 class="text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
                 {{ tag }}
               </span>
-              <span v-if="subProgress !== null" class="text-[10px] text-gray-400">
-                {{ subProgress }}/{{ subtasks.length }}
+              <span v-if="subProgress !== null && subtasks.length > 0" class="flex items-center gap-1.5">
+                <span class="w-12 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                  <span class="block h-full rounded-full bg-indigo-400 transition-all" :style="{ width: (subProgress / subtasks.length * 100) + '%' }" />
+                </span>
+                <span class="text-[10px] text-gray-400">{{ subProgress }}/{{ subtasks.length }}</span>
               </span>
             </div>
           </div>
@@ -143,6 +155,7 @@ function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t =>
               'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400': todo.priority === 'medium',
               'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400': todo.priority === 'high',
             }">{{ priorityLabel(todo.priority) }}</span>
+          <span v-if="todo.recurrence" class="text-[11px] text-gray-400" title="重复任务">&#x21bb;</span>
           <span v-if="todo.due_date" class="text-[11px]"
             :class="{
               'text-red-500 font-semibold': isOverdue,

@@ -3,6 +3,8 @@ export interface Todo {
   title: string
   description: string
   priority: 'low' | 'medium' | 'high'
+  effort: '' | 'easy' | 'medium' | 'hard'
+  recurrence: '' | 'daily' | 'weekly' | 'monthly'
   tags: string
   completed: boolean
   archived: boolean
@@ -28,18 +30,27 @@ export interface List {
   updated_at: string
 }
 
+export interface DailyTrend {
+  date: string
+  created: number
+  completed: number
+}
+
 export interface Stats {
   total: number
   active: number
   completed: number
   by_priority: Record<string, number>
   by_tag: Record<string, number>
+  daily_trends?: DailyTrend[]
 }
 
 export interface CreateTodoRequest {
   title: string
   description?: string
   priority?: string
+  effort?: string
+  recurrence?: string
   tags?: string
   due_date?: string | null
   list_id?: number
@@ -49,6 +60,8 @@ export interface UpdateTodoRequest {
   title?: string
   description?: string
   priority?: string
+  effort?: string
+  recurrence?: string
   tags?: string
   completed?: boolean
   archived?: boolean

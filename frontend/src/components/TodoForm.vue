@@ -8,6 +8,8 @@ const store = useTodos()
 const title = ref('')
 const description = ref('')
 const priority = ref('medium')
+const effort = ref('')
+const recurrence = ref('')
 const dueDate = ref('')
 const tags = ref('')
 const expanded = ref(false)
@@ -20,12 +22,16 @@ async function handleSubmit() {
     title: title.value.trim(),
     description: description.value.trim() || undefined,
     priority: priority.value,
+    effort: effort.value || undefined,
+    recurrence: recurrence.value || undefined,
     tags: tags.value.trim() || undefined,
     due_date: dueDate.value || null,
   })
   title.value = ''
   description.value = ''
   priority.value = 'medium'
+  effort.value = ''
+  recurrence.value = ''
   dueDate.value = ''
   tags.value = ''
   expanded.value = false
@@ -86,11 +92,25 @@ function handleKeydown(e: KeyboardEvent) {
       />
       <!-- Date -->
       <DatePicker v-model="dueDate" />
+      <!-- Recurrence -->
+      <Select v-model="recurrence" :options="[
+        { label: '不重复', value: '' },
+        { label: '每天', value: 'daily' },
+        { label: '每周', value: 'weekly' },
+        { label: '每月', value: 'monthly' },
+      ]" />
       <!-- Priority -->
       <Select v-model="priority" :options="[
         { label: '低优先级', value: 'low' },
         { label: '中优先级', value: 'medium' },
         { label: '高优先级', value: 'high' },
+      ]" />
+      <!-- Effort -->
+      <Select v-model="effort" :options="[
+        { label: '工作量', value: '' },
+        { label: '简单', value: 'easy' },
+        { label: '中等', value: 'medium' },
+        { label: '困难', value: 'hard' },
       ]" />
       <!-- Tags -->
       <input

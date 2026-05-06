@@ -14,6 +14,7 @@ func GetStats(userID uint, listID uint) map[string]interface{} {
 	total, active, completed := repository.CountAll(userID, listID)
 	byPriority := repository.CountByPriority(userID, listID)
 	byTag := repository.CountByTag(userID, listID)
+	trends := repository.GetDailyTrends(userID, 7)
 
 	return map[string]interface{}{
 		"total":       total,
@@ -21,6 +22,7 @@ func GetStats(userID uint, listID uint) map[string]interface{} {
 		"completed":   completed,
 		"by_priority": byPriority,
 		"by_tag":      byTag,
+		"daily_trends": trends,
 	}
 }
 
@@ -53,8 +55,10 @@ func UpdateTodo(userID uint, id uint, input *models.Todo) (*models.Todo, error) 
 	todo.Title = input.Title
 	todo.Description = input.Description
 	todo.Priority = input.Priority
+	todo.Effort = input.Effort
 	todo.Tags = input.Tags
 	todo.DueDate = input.DueDate
+	todo.Recurrence = input.Recurrence
 
 	if err := repository.Update(todo); err != nil {
 		return nil, err
@@ -71,6 +75,33 @@ func ToggleTodo(userID uint, id uint) (*models.Todo, error) {
 	if err := repository.Update(todo); err != nil {
 		return nil, err
 	}
+
+	// If completing a recurring task, spawn next instance
+	if todo.Completed && todo.Recurrence != "" && todo.DueDate.Valid {
+		next := models.Todo{
+			UserID:      todo.UserID,
+			ListID:      todo.ListID,
+			Title:       todo.Title,
+			Description: todo.Description,
+			Priority:    todo.Priority,
+			Effort:      todo.Effort,
+			Tags:        todo.Tags,
+			Recurrence:  todo.Recurrence,
+		}
+		d := todo.DueDate.Time
+		switch todo.Recurrence {
+		case "daily":
+			next.DueDate = models.DateOnly{Time: d.AddDate(0, 0, 1), Valid: true}
+		case "weekly":
+			next.DueDate = models.DateOnly{Time: d.AddDate(0, 0, 7), Valid: true}
+		case "monthly":
+			next.DueDate = models.DateOnly{Time: d.AddDate(0, 1, 0), Valid: true}
+		}
+		if next.DueDate.Valid {
+			CreateTodo(&next)
+		}
+	}
+
 	return todo, nil
 }
 

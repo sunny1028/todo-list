@@ -50,6 +50,19 @@ func ToggleSubtask(c *gin.Context) {
 	}
 	st.Completed = !st.Completed
 	database.DB.Save(&st)
+
+	// Auto-complete parent todo when all subtasks are done
+	if st.Completed {
+		var count int64
+		database.DB.Model(&models.Subtask{}).Where("todo_id = ? AND completed = ?", st.TodoID, false).Count(&count)
+		if count == 0 {
+			database.DB.Model(&models.Todo{}).Where("id = ?", st.TodoID).Update("completed", true)
+		}
+	} else {
+		// Uncheck parent if subtask is unchecked
+		database.DB.Model(&models.Todo{}).Where("id = ?", st.TodoID).Update("completed", false)
+	}
+
 	c.JSON(http.StatusOK, st)
 }
 
