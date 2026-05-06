@@ -12,9 +12,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Todo List',
-        short_name: 'Todos',
-        description: 'A simple todo list app',
+        name: '待办事项',
+        short_name: '待办',
+        description: '简洁高效的待办事项管理工具',
         theme_color: '#6366f1',
         background_color: '#f9fafb',
         display: 'standalone',
