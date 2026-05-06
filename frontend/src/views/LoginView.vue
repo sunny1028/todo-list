@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../stores/auth'
 import { useTodos } from '../stores/todo'
@@ -15,14 +15,14 @@ const error = ref('')
 const loading = ref(false)
 const mode = ref<'bind' | 'login'>(auth.hasPassword ? 'login' : 'bind')
 const showMergeConfirm = ref(false)
+const anonymousCount = ref(0)
 
-// Check if anonymous user has data
-let anonymousCount = 0
-if (mode.value === 'login') {
-  todoStore.fetchTodos().then(() => {
-    anonymousCount = todoStore.todos.length
-  })
-}
+watch(mode, async (m) => {
+  if (m === 'login') {
+    await todoStore.fetchTodos()
+    anonymousCount.value = todoStore.todos.length
+  }
+}, { immediate: true })
 
 async function submit() {
   if (!username.value.trim() || !password.value.trim()) {
@@ -30,7 +30,7 @@ async function submit() {
     return
   }
 
-  if (mode.value === 'login' && anonymousCount > 0) {
+  if (mode.value === 'login' && anonymousCount.value > 0) {
     showMergeConfirm.value = true
     return
   }
