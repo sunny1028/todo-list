@@ -3,11 +3,20 @@ import { onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useLists } from '../../stores/lists'
 import { useTodos } from '../../stores/todo'
+import { useAuth } from '../../stores/auth'
 
 const router = useRouter()
 const route = useRoute()
 const listStore = useLists()
 const todoStore = useTodos()
+const auth = useAuth()
+
+async function handleLogout() {
+  await auth.logout()
+  todoStore.setList(0)
+  await todoStore.fetchTodos()
+  await listStore.fetchLists()
+}
 
 const showNewList = ref(false)
 const newListName = ref('')
@@ -87,8 +96,17 @@ onMounted(() => {
       </button>
     </button>
 
+    <!-- Logout -->
+    <div v-if="auth.hasPassword" class="mt-auto pt-4 border-t border-gray-100 dark:border-gray-800 mt-4">
+      <button @click="handleLogout()"
+        class="w-full text-left px-3 py-2 rounded-xl text-sm font-medium text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        注销
+      </button>
+    </div>
+
     <!-- View links -->
-    <div class="mt-auto pt-4 border-t border-gray-100 dark:border-gray-800 mt-4 space-y-0.5">
+    <div class="pt-4 border-t border-gray-100 dark:border-gray-800 space-y-0.5" :class="{ 'mt-4': !auth.hasPassword }">
       <button @click="router.push('/board')"
         class="w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
         :class="route.path === '/board' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'">

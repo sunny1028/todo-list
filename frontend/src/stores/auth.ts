@@ -58,5 +58,14 @@ export const useAuth = defineStore('auth', () => {
     return res.data
   }
 
-  return { uuid, token, hasPassword, initialized, init, bind, login }
+  async function logout() {
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('uuid')
+    token.value = ''
+    hasPassword.value = false
+    uuid.value = ''
+    await init()
+  }
+
+  return { uuid, token, hasPassword, initialized, init, bind, login, logout }
 })
