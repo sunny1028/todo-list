@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useTodos } from '../stores/todo'
+import type { Todo } from '../types/todo'
 import TodoForm from './TodoForm.vue'
 import TodoItem from './TodoItem.vue'
 import Skeleton from './ui/Skeleton.vue'
@@ -86,6 +87,52 @@ function filteredTodos() {
 
 const completedCount = computed(() => store.todos.filter((t) => t.completed).length)
 const archivedCount = computed(() => store.todos.filter((t) => t.archived).length)
+
+interface GroupedItem {
+  type: 'group'
+  label: string
+  count: number
+}
+type ListItem = Todo | GroupedItem
+function isGroup(item: ListItem): item is GroupedItem {
+  return (item as GroupedItem).type === 'group'
+}
+function asTodo(item: ListItem): Todo {
+  return item as Todo
+}
+
+const groupedTodos = computed(() => {
+  const list = filteredTodos()
+  if (list.length === 0) return [] as ListItem[]
+
+  const today = new Date().toISOString().slice(0, 10)
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
+  const afterTomorrow = new Date(Date.now() + 172800000).toISOString().slice(0, 10)
+
+  const groups: { label: string; todos: typeof list }[] = [
+    { label: '已过期', todos: [] },
+    { label: '今天', todos: [] },
+    { label: '明天', todos: [] },
+    { label: '后天', todos: [] },
+    { label: '更晚', todos: [] },
+  ]
+
+  for (const t of list) {
+    if (!t.due_date || t.due_date === today) { groups[1].todos.push(t); continue }
+    if (t.due_date < today) { groups[0].todos.push(t); continue }
+    if (t.due_date === tomorrow) { groups[2].todos.push(t); continue }
+    if (t.due_date === afterTomorrow) { groups[3].todos.push(t); continue }
+    groups[4].todos.push(t)
+  }
+
+  const result: ListItem[] = []
+  for (const g of groups) {
+    if (g.todos.length === 0) continue
+    result.push({ type: 'group', label: g.label, count: g.todos.length })
+    result.push(...g.todos)
+  }
+  return result
+})
 
 const allTags = computed(() => {
   const set = new Set<string>()
@@ -227,22 +274,28 @@ onUnmounted(() => {
 
     <div v-if="store.loading"><Skeleton :count="5" /></div>
     <div v-else-if="store.error" class="text-center py-10 text-red-400 text-sm">{{ store.error }}</div>
-    <div v-else-if="filteredTodos().length === 0" class="text-center py-16 text-gray-300 dark:text-gray-700 text-sm italic">
+    <div v-else-if="groupedTodos.length === 0" class="text-center py-16 text-gray-300 dark:text-gray-700 text-sm italic">
       暂无待办
     </div>
 
     <TransitionGroup v-else name="list" tag="div">
-      <div v-for="todo in filteredTodos()" :key="todo.id"
-        draggable="true"
-        @dragstart="onDragStart(todo)"
-        @dragover="onDragOver($event, todo)"
-        @dragleave="onDragLeave"
-        @drop="onDrop(todo)"
-        @dragend="onDragEnd"
-        :class="{ 'opacity-40': dragId === todo.id, 'border-t-2 border-indigo-400': dragOverId === todo.id }"
-      >
-        <TodoItem :todo="todo" />
-      </div>
+      <template v-for="item in groupedTodos" :key="isGroup(item) ? item.label : asTodo(item).id">
+        <div v-if="isGroup(item)" class="text-[11px] font-semibold text-gray-400 dark:text-gray-500 tracking-wider px-1 py-2 first:pt-0">
+          {{ item.label }}
+          <span class="font-normal text-gray-300 dark:text-gray-600 ml-1">{{ item.count }}</span>
+        </div>
+        <div v-else
+          draggable="true"
+          @dragstart="onDragStart(asTodo(item))"
+          @dragover="onDragOver($event, asTodo(item))"
+          @dragleave="onDragLeave"
+          @drop="onDrop(asTodo(item))"
+          @dragend="onDragEnd"
+          :class="{ 'opacity-40': dragId === asTodo(item).id, 'border-t-2 border-indigo-400': dragOverId === asTodo(item).id }"
+        >
+          <TodoItem :todo="asTodo(item)" />
+        </div>
+      </template>
     </TransitionGroup>
 
     <div class="mt-8 text-center text-[11px] text-gray-300 dark:text-gray-700 hidden md:block">

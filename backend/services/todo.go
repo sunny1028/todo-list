@@ -78,31 +78,41 @@ func ToggleTodo(userID uint, id uint) (*models.Todo, error) {
 		return nil, err
 	}
 
-	// If completing a recurring task, spawn next instance
+	/// If completing a recurring task, spawn next instance only if one doesn't already exist
 	if todo.Completed && todo.Recurrence != "" {
-		next := models.Todo{
-			UserID:      todo.UserID,
-			ListID:      todo.ListID,
-			Title:       todo.Title,
-			Description: todo.Description,
-			Priority:    todo.Priority,
-			Effort:      todo.Effort,
-			Tags:        todo.Tags,
-			Recurrence:  todo.Recurrence,
-		}
 		d := todo.DueDate.Time
 		if !todo.DueDate.Valid {
 			d = time.Now()
 		}
+		var nextDate time.Time
 		switch todo.Recurrence {
 		case "daily":
-			next.DueDate = models.DateOnly{Time: d.AddDate(0, 0, 1), Valid: true}
+			nextDate = d.AddDate(0, 0, 1)
 		case "weekly":
-			next.DueDate = models.DateOnly{Time: d.AddDate(0, 0, 7), Valid: true}
+			nextDate = d.AddDate(0, 0, 7)
 		case "monthly":
-			next.DueDate = models.DateOnly{Time: d.AddDate(0, 1, 0), Valid: true}
+			nextDate = d.AddDate(0, 1, 0)
 		}
-		CreateTodo(&next)
+		// Only spawn if no future instance already exists for this date
+		var count int64
+		database.DB.Model(&models.Todo{}).Where(
+			"user_id = ? AND title = ? AND recurrence = ? AND due_date = ?",
+			todo.UserID, todo.Title, todo.Recurrence, nextDate.Format("2006-01-02"),
+		).Count(&count)
+		if count == 0 {
+			next := models.Todo{
+				UserID:      todo.UserID,
+				ListID:      todo.ListID,
+				Title:       todo.Title,
+				Description: todo.Description,
+				Priority:    todo.Priority,
+				Effort:      todo.Effort,
+				Tags:        todo.Tags,
+				Recurrence:  todo.Recurrence,
+				DueDate:     models.DateOnly{Time: nextDate, Valid: true},
+			}
+			CreateTodo(&next)
+		}
 	}
 
 	return todo, nil
