@@ -36,6 +36,7 @@ func Setup(corsOrigin string) *gin.Engine {
 		protected.GET("/todos", handlers.ListTodos)
 		protected.POST("/todos", handlers.CreateTodo)
 		protected.GET("/todos/stats", handlers.Stats)
+		protected.GET("/todos/stats/review", handlers.ReviewStats)
 		protected.GET("/todos/export", handlers.ExportTodos)
 		protected.POST("/todos/import", handlers.ImportTodos)
 		protected.PUT("/todos/reorder", handlers.ReorderTodos)

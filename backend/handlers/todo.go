@@ -319,3 +319,10 @@ func Stats(c *gin.Context) {
 	stats := services.GetStats(userID, listID)
 	c.JSON(http.StatusOK, stats)
 }
+
+func ReviewStats(c *gin.Context) {
+	userID := c.GetUint("user_id")
+	listID := parseListID(c)
+	review := services.GetReviewStats(userID, listID)
+	c.JSON(http.StatusOK, review)
+}

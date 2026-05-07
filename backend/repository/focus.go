@@ -40,6 +40,36 @@ type FocusStats struct {
 	StreakDays    int   `json:"streak_days"`
 }
 
+type DailyFocus struct {
+	Date    string `json:"date"`
+	Minutes int    `json:"minutes"`
+}
+
+func GetFocusMinutesOnDate(userID uint, date string) int {
+	var mins int
+	database.DB.Model(&models.FocusSession{}).
+		Where("user_id = ? AND completed = ? AND date(started_at) = ?", userID, true, date).
+		Select("COALESCE(SUM(duration_min), 0)").Scan(&mins)
+	return mins
+}
+
+func GetDailyFocusMinutes(userID uint, days int) []DailyFocus {
+	var results []DailyFocus
+	for i := 0; i < days; i++ {
+		d := time.Now().AddDate(0, 0, -i)
+		dateStr := d.Format("2006-01-02")
+		var mins int
+		database.DB.Model(&models.FocusSession{}).
+			Where("user_id = ? AND completed = ? AND date(started_at) = ?", userID, true, dateStr).
+			Select("COALESCE(SUM(duration_min), 0)").Scan(&mins)
+		results = append(results, DailyFocus{Date: dateStr, Minutes: mins})
+	}
+	for i, j := 0, len(results)-1; i < j; i, j = i+1, j-1 {
+		results[i], results[j] = results[j], results[i]
+	}
+	return results
+}
+
 func GetFocusStats(userID uint) FocusStats {
 	var s FocusStats
 	today := time.Now().Format("2006-01-02")

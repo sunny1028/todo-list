@@ -1,4 +1,4 @@
-import type { Todo, List, Stats, Subtask, Attachment, CreateTodoRequest, UpdateTodoRequest, CreateListRequest } from '../types/todo'
+import type { Todo, List, Stats, ReviewStats, Subtask, Attachment, CreateTodoRequest, UpdateTodoRequest, CreateListRequest } from '../types/todo'
 import api from './index'
 
 // Todos
@@ -40,6 +40,9 @@ export function importTodos(format: 'json' | 'csv', content: string, listId?: nu
 }
 export function getStats(listId?: number) {
   return api.get<Stats>('/todos/stats', { params: { list_id: listId } })
+}
+export function getReviewStats(listId?: number) {
+  return api.get<ReviewStats>('/todos/stats/review', { params: { list_id: listId } })
 }
 
 // Subtasks

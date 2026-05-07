@@ -98,6 +98,31 @@ export interface FocusSession {
   created_at: string
 }
 
+export interface YesterdaySummary {
+  tasks_created: number
+  tasks_completed: number
+  focus_minutes: number
+}
+
+export interface WeeklyReport {
+  tasks_created: number
+  tasks_completed: number
+  focus_minutes: number
+  best_day: string
+}
+
+export interface DailyFocusItem {
+  date: string
+  minutes: number
+}
+
+export interface ReviewStats {
+  yesterday_summary: YesterdaySummary
+  weekly_report: WeeklyReport
+  daily_focus: DailyFocusItem[]
+  mastery_score: number
+}
+
 export interface FocusStats {
   today_minutes: number
   total_minutes: number

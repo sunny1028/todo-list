@@ -5,6 +5,8 @@ import (
 	"time"
 	"todo-list/backend/database"
 	"todo-list/backend/models"
+
+	"gorm.io/gorm"
 )
 
 func FindAll(userID uint, listID uint, status, priority, tag, search string) ([]models.Todo, error) {
@@ -159,6 +161,32 @@ func GetDailyTrends(userID uint, days int) []DailyTrend {
 		results[i], results[j] = results[j], results[i]
 	}
 	return results
+}
+
+func buildQuery(userID uint, listID uint) *gorm.DB {
+	q := database.DB.Model(&models.Todo{}).Where("user_id = ?", userID)
+	if listID > 0 {
+		q = q.Where("list_id = ?", listID)
+	}
+	return q
+}
+
+func CountCreatedOnDate(userID uint, listID uint, date string) int64 {
+	var c int64
+	buildQuery(userID, listID).Where("date(created_at) = ?", date).Count(&c)
+	return c
+}
+
+func CountCompletedOnDate(userID uint, listID uint, date string) int64 {
+	var c int64
+	buildQuery(userID, listID).Where("completed = ? AND date(updated_at) = ?", true, date).Count(&c)
+	return c
+}
+
+func CountCreatedCompletedOnDate(userID uint, listID uint, date string) (created, completed int64) {
+	buildQuery(userID, listID).Where("date(created_at) = ?", date).Count(&created)
+	buildQuery(userID, listID).Where("completed = ? AND date(updated_at) = ?", true, date).Count(&completed)
+	return
 }
 
 func CountByTag(userID uint, listID uint) map[string]int64 {
