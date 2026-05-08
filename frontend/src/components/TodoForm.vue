@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useTodos } from '../stores/todo'
+import { parseTodoInput } from '../utils/parseTodoInput'
 import DatePicker from './ui/DatePicker.vue'
 import Select from './ui/Select.vue'
 
@@ -14,18 +15,57 @@ const dueDate = ref('')
 const tags = ref('')
 const expanded = ref(false)
 
+const parsed = computed(() => {
+  const t = title.value.trim()
+  if (!t) return null
+  return parseTodoInput(t)
+})
+
+const previewChips = computed(() => {
+  const p = parsed.value
+  if (!p) return []
+  const chips: { type: string; label: string }[] = []
+
+  if (p.priority) {
+    const labels: Record<string, string> = { low: '低', medium: '中', high: '高' }
+    chips.push({ type: 'priority', label: labels[p.priority] })
+  }
+  if (p.tags) {
+    p.tags.split(',').forEach(tag => chips.push({ type: 'tag', label: `#${tag}` }))
+  }
+  if (p.effort) {
+    const labels: Record<string, string> = { easy: '简单', medium: '中等', hard: '困难' }
+    chips.push({ type: 'effort', label: labels[p.effort] })
+  }
+  if (p.recurrence) {
+    const labels: Record<string, string> = { daily: '每天', weekly: '每周', monthly: '每月' }
+    chips.push({ type: 'recurrence', label: labels[p.recurrence] })
+  }
+  if (p.dueDate) {
+    const today = new Date().toISOString().slice(0, 10)
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
+    if (p.dueDate === today) chips.push({ type: 'date', label: '今天' })
+    else if (p.dueDate === tomorrow) chips.push({ type: 'date', label: '明天' })
+    else chips.push({ type: 'date', label: p.dueDate })
+  }
+
+  return chips
+})
+
 const emit = defineEmits<{ created: [] }>()
 
 async function handleSubmit() {
-  if (!title.value.trim()) return
+  const p = parsed.value
+  const finalTitle = p?.title || title.value.trim()
+  if (!finalTitle) return
   await store.addTodo({
-    title: title.value.trim(),
+    title: finalTitle,
     description: description.value.trim() || undefined,
-    priority: priority.value,
-    effort: effort.value || undefined,
-    recurrence: recurrence.value || undefined,
-    tags: tags.value.trim() || undefined,
-    due_date: dueDate.value || null,
+    priority: priority.value !== 'medium' ? priority.value : (p?.priority || 'medium'),
+    effort: effort.value || p?.effort || undefined,
+    recurrence: recurrence.value || p?.recurrence || undefined,
+    tags: tags.value.trim() || p?.tags || undefined,
+    due_date: dueDate.value || p?.dueDate || null,
   })
   title.value = ''
   description.value = ''
@@ -65,6 +105,23 @@ function handleKeydown(e: KeyboardEvent) {
         @keydown="handleKeydown"
         class="flex-1 min-w-0 text-sm bg-transparent border-none outline-none text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
       />
+
+      <!-- Preview chips from natural language parsing -->
+      <div v-if="previewChips.length" class="flex flex-wrap gap-1 shrink-0">
+        <span
+          v-for="chip in previewChips"
+          :key="chip.type + chip.label"
+          class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium"
+          :class="{
+            'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400': chip.type === 'priority',
+            'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400': chip.type === 'date',
+            'bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400': chip.type === 'tag',
+            'bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400': chip.type === 'effort',
+            'bg-cyan-50 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400': chip.type === 'recurrence',
+          }">
+          {{ chip.label }}
+        </span>
+      </div>
 
       <!-- Action icons -->
       <div class="flex items-center gap-0.5 shrink-0">
