@@ -15,5 +15,5 @@ func Init(dbPath string) error {
 	if err != nil {
 		return err
 	}
-	return DB.AutoMigrate(&models.User{}, &models.Todo{}, &models.List{}, &models.Attachment{}, &models.Subtask{}, &models.FocusSession{})
+	return DB.AutoMigrate(&models.User{}, &models.Todo{}, &models.List{}, &models.Attachment{}, &models.Subtask{}, &models.FocusSession{}, &models.ListShare{}, &models.ListShareMember{})
 }
