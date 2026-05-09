@@ -29,8 +29,25 @@ export interface List {
   id: number
   name: string
   color: string
+  user_id: number
+  permission?: 'view' | 'edit'
   created_at: string
   updated_at: string
+}
+
+export interface ListShare {
+  id: number
+  list_id: number
+  code: string
+  permission: 'view' | 'edit'
+  created_at: string
+}
+
+export interface ListShareMember {
+  id: number
+  share_id: number
+  user_id: number
+  joined_at: string
 }
 
 export interface DailyTrend {
