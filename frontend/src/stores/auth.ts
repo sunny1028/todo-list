@@ -7,6 +7,7 @@ export const useAuth = defineStore('auth', () => {
   const token = ref('')
   const hasPassword = ref(false)
   const initialized = ref(false)
+  const userId = ref(0)
 
   function generateUUID(): string {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -28,6 +29,10 @@ export const useAuth = defineStore('auth', () => {
       token.value = res.data.token
       hasPassword.value = res.data.has_password
       localStorage.setItem('auth_token', token.value)
+      try {
+        const payload = JSON.parse(atob(token.value.split('.')[1]))
+        userId.value = payload.user_id || 0
+      } catch { /* ignore */ }
     } catch {
       // Degraded mode — API calls will return 401
     } finally {
@@ -53,6 +58,7 @@ export const useAuth = defineStore('auth', () => {
     try {
       const payload = JSON.parse(atob(res.data.token.split('.')[1]))
       uuid.value = payload.uuid
+      userId.value = payload.user_id || 0
       localStorage.setItem('uuid', payload.uuid)
     } catch { /* ignore */ }
     return res.data
@@ -68,6 +74,7 @@ export const useAuth = defineStore('auth', () => {
     try {
       const payload = JSON.parse(atob(res.data.token.split('.')[1]))
       uuid.value = payload.uuid
+      userId.value = payload.user_id || 0
       localStorage.setItem('uuid', payload.uuid)
     } catch { /* ignore */ }
     return res.data
@@ -82,5 +89,5 @@ export const useAuth = defineStore('auth', () => {
     await init()
   }
 
-  return { uuid, token, hasPassword, initialized, init, bind, login, mergeLogin, logout }
+  return { uuid, token, hasPassword, initialized, userId, init, bind, login, mergeLogin, logout }
 })
