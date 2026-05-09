@@ -5,6 +5,7 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', component: HomeView },
+    { path: '/join', component: HomeView },
     { path: '/todo/:id', component: () => import('../views/TodoDetailView.vue') },
     { path: '/stats', component: () => import('../views/StatsView.vue') },
     { path: '/focus', component: () => import('../views/FocusView.vue') },

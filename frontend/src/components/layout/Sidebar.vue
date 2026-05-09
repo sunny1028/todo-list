@@ -116,7 +116,7 @@ onMounted(() => {
         <span v-if="list.user_id && list.user_id !== auth.userId" class="text-[10px] mr-0.5 opacity-60" title="共享列表">👥</span>
         {{ list.name }}
       </span>
-      <div class="flex items-center gap-0.5">
+      <div v-if="!list.user_id || list.user_id === auth.userId" class="flex items-center gap-0.5">
         <button
           @click.stop="shareListId = list.id"
           class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-indigo-500 transition-all"

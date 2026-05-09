@@ -27,6 +27,7 @@ async function handleJoin() {
 </script>
 
 <template>
+  <Teleport to="body">
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/30" @click.self="emit('close')">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-[360px] max-w-[90vw]">
       <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 mb-4">加入共享列表</h3>
@@ -44,4 +45,5 @@ async function handleJoin() {
       </button>
     </div>
   </div>
+  </Teleport>
 </template>

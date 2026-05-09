@@ -35,6 +35,9 @@ func GetTodos(userID uint, listID uint, status, priority, tag, search string) ([
 	if !canAccessList(userID, listID) {
 		return nil, errors.New("access denied")
 	}
+	if listID > 0 && repository.GetUserPermission(listID, userID) != "" {
+		return repository.FindAllByList(listID, status, priority, tag, search)
+	}
 	return repository.FindAll(userID, listID, status, priority, tag, search)
 }
 

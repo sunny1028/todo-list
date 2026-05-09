@@ -9,6 +9,66 @@ import (
 	"gorm.io/gorm"
 )
 
+func FindAllByList(listID uint, status, priority, tag, search string) ([]models.Todo, error) {
+	var todos []models.Todo
+	q := database.DB.Model(&models.Todo{}).Where("list_id = ?", listID)
+
+	if status == "archived" {
+		q = q.Where("archived = ?", true)
+	} else {
+		q = q.Where("archived = ?", false)
+		if status == "completed" {
+			q = q.Where("completed = ?", true)
+		} else if status == "active" {
+			q = q.Where("completed = ?", false)
+		}
+	}
+
+	if priority != "" {
+		q = q.Where("priority = ?", priority)
+	}
+	if tag != "" {
+		q = q.Where("tags LIKE ?", "%"+tag+"%")
+	}
+	if search != "" {
+		q = q.Where("title LIKE ?", "%"+search+"%")
+	}
+
+	err := q.Order("sort_order ASC, created_at DESC").Find(&todos).Error
+	if err != nil {
+		return todos, err
+	}
+
+	if len(todos) > 0 {
+		ids := make([]uint, len(todos))
+		for i, t := range todos {
+			ids[i] = t.ID
+		}
+		type countRow struct {
+			TodoID    uint
+			Total     int
+			Completed int
+		}
+		var rows []countRow
+		database.DB.Model(&models.Subtask{}).
+			Select("todo_id, count(*) as total, sum(case when completed then 1 else 0 end) as completed").
+			Where("todo_id IN ?", ids).
+			Group("todo_id").
+			Scan(&rows)
+		for i := range todos {
+			for _, r := range rows {
+				if r.TodoID == todos[i].ID {
+					todos[i].SubtaskCount = r.Total
+					todos[i].SubtaskCompleted = r.Completed
+					break
+				}
+			}
+		}
+	}
+
+	return todos, nil
+}
+
 func FindAll(userID uint, listID uint, status, priority, tag, search string) ([]models.Todo, error) {
 	var todos []models.Todo
 	q := database.DB.Model(&models.Todo{}).Where("user_id = ?", userID)

@@ -55,6 +55,7 @@ function copyLink() {
 </script>
 
 <template>
+  <Teleport to="body">
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/30" @click.self="emit('close')">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-[380px] max-w-[90vw]">
       <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 mb-4">共享列表「{{ listName }}」</h3>
@@ -103,4 +104,5 @@ function copyLink() {
       </button>
     </div>
   </div>
+  </Teleport>
 </template>
