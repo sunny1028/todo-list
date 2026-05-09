@@ -9,7 +9,7 @@ import ConfirmDialog from './ui/ConfirmDialog.vue'
 import DatePicker from './ui/DatePicker.vue'
 import Select from './ui/Select.vue'
 
-const props = defineProps<{ todo: Todo }>()
+const props = defineProps<{ todo: Todo; readonly?: boolean }>()
 const store = useTodos()
 const router = useRouter()
 const { isMobile } = useResponsive()
@@ -263,11 +263,12 @@ function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t =>
             <span v-if="todo.subtask_count > 0 && !showSubtasks" class="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-indigo-500 text-white text-[9px] font-bold leading-none px-0.5">{{ todo.subtask_count }}</span>
           </button>
 
-          <button @click.stop="startEdit"
+          <button v-if="!props.readonly" @click.stop="startEdit"
             class="w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 dark:text-gray-600 hover:text-gray-500 transition-colors">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
 
+          <template v-if="!props.readonly">
           <!-- Archive or Delete -->
           <button v-if="todo.completed && !todo.archived" @click.stop="store.archiveTodo(todo.id)"
             class="w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 dark:text-gray-600 hover:text-amber-500 transition-colors">
@@ -277,6 +278,7 @@ function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t =>
             class="w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 dark:text-gray-600 hover:text-red-400 transition-colors">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           </button>
+          </template>
         </div>
       </template>
       <template v-else>

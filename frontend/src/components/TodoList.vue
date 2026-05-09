@@ -2,6 +2,8 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useTodos } from '../stores/todo'
+import { useLists } from '../stores/lists'
+import { useAuth } from '../stores/auth'
 import type { Todo } from '../types/todo'
 import TodoForm from './TodoForm.vue'
 import TodoItem from './TodoItem.vue'
@@ -13,6 +15,14 @@ import * as api from '../api/todos'
 
 const store = useTodos()
 const route = useRoute()
+const listStore = useLists()
+const authStore = useAuth()
+
+const isReadonly = computed(() => {
+  const list = listStore.lists.find(l => l.id === store.currentListId)
+  if (!list) return false
+  return list.user_id !== authStore.userId && list.permission === 'view'
+})
 
 const search = ref('')
 const priorityFilter = ref('')
@@ -222,7 +232,7 @@ onUnmounted(() => {
 
 <template>
   <div>
-    <TodoForm @created="() => {}" />
+    <TodoForm v-if="!isReadonly" @created="() => {}" />
 
     <div class="flex gap-2 mb-3 flex-wrap">
       <input
@@ -293,7 +303,7 @@ onUnmounted(() => {
           @dragend="onDragEnd"
           :class="{ 'opacity-40': dragId === asTodo(item).id, 'border-t-2 border-indigo-400': dragOverId === asTodo(item).id }"
         >
-          <TodoItem :todo="asTodo(item)" />
+          <TodoItem :todo="asTodo(item)" :readonly="isReadonly" />
         </div>
       </template>
     </TransitionGroup>
