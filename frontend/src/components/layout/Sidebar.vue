@@ -26,6 +26,7 @@ const colors = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'
 function selectList(id: number) {
   todoStore.setList(id)
   todoStore.fetchTodos()
+  router.replace({ query: {} })
 }
 
 function isActive(id: number) {
@@ -72,12 +73,31 @@ onMounted(() => {
 
     <!-- All todos -->
     <button
-      @click="selectList(0)"
+      @click="selectList(0); router.push('/')"
       class="w-full text-left px-3 py-2 rounded-xl text-sm font-medium mb-0.5 transition-colors"
-      :class="isActive(0) ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'"
+      :class="isActive(0) && !route.query.filter ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'"
     >
       全部待办
     </button>
+
+    <!-- Filter chips -->
+    <div class="flex gap-1 px-3 mb-3">
+      <button
+        v-for="f in [
+          { key: 'active', label: '进行中' },
+          { key: 'completed', label: '已完成' },
+          { key: 'archived', label: '已归档' },
+        ]"
+        :key="f.key"
+        @click="router.replace({ query: { filter: f.key } })"
+        class="px-2 py-1 rounded-lg text-[11px] font-medium transition-colors"
+        :class="route.query.filter === f.key
+          ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400'
+          : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'"
+      >
+        {{ f.label }}
+      </button>
+    </div>
 
     <!-- Custom lists -->
     <button

@@ -6,6 +6,7 @@ import { useRouter } from 'vue-router'
 import { useResponsive } from '../composables/useResponsive'
 import * as api from '../api/todos'
 import ConfirmDialog from './ui/ConfirmDialog.vue'
+import DatePicker from './ui/DatePicker.vue'
 import Select from './ui/Select.vue'
 
 const props = defineProps<{ todo: Todo }>()
@@ -279,30 +280,32 @@ function parseTags(s: string) { return s ? s.split(',').filter(Boolean).map(t =>
         </div>
       </template>
       <template v-else>
-        <div @click.stop class="flex flex-wrap gap-2 w-full">
-          <input v-model="editTitle" class="flex-1 min-w-[100px] px-2.5 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm outline-none focus:border-indigo-400 bg-white dark:bg-gray-800 dark:text-gray-100" placeholder="标题" />
-          <input v-model="editDescription" class="flex-1 min-w-[100px] px-2.5 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm outline-none focus:border-indigo-400 bg-white dark:bg-gray-800 dark:text-gray-100" placeholder="备注" />
-          <input v-model="editDueDate" type="date" class="px-2.5 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 dark:text-gray-100 outline-none" />
-          <Select v-model="editPriority" :options="[
-            { label: '低', value: 'low' },
-            { label: '中', value: 'medium' },
-            { label: '高', value: 'high' },
-          ]" />
-          <Select v-model="editEffort" :options="[
-            { label: '工作量', value: '' },
-            { label: '简单', value: 'easy' },
-            { label: '中等', value: 'medium' },
-            { label: '困难', value: 'hard' },
-          ]" />
-          <Select v-model="editRecurrence" :options="[
-            { label: '不重复', value: '' },
-            { label: '每天', value: 'daily' },
-            { label: '每周', value: 'weekly' },
-            { label: '每月', value: 'monthly' },
-          ]" />
-          <input v-model="editTags" class="w-[120px] px-2.5 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 dark:text-gray-100 outline-none" placeholder="标签" />
-          <button @click="saveEdit" class="px-3 py-2 bg-indigo-500 text-white rounded-lg text-sm font-semibold">保存</button>
-          <button @click="cancelEdit" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-semibold">取消</button>
+        <div @click.stop class="flex flex-col gap-2 w-full">
+          <input v-model="editTitle" class="w-full px-2.5 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg text-sm outline-none focus:border-indigo-400 bg-white dark:bg-gray-800 dark:text-gray-100" placeholder="标题" />
+          <input v-model="editDescription" class="w-full px-2.5 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg text-xs outline-none focus:border-indigo-400 bg-white dark:bg-gray-800 dark:text-gray-100" placeholder="备注" />
+          <div class="flex flex-wrap items-center gap-1.5">
+            <DatePicker v-model="editDueDate" small />
+            <input v-model="editTags" class="w-[100px] px-2 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg text-xs bg-white dark:bg-gray-800 dark:text-gray-100 outline-none focus:border-indigo-400" placeholder="标签" />
+            <Select v-model="editPriority" small :options="[
+              { label: '低', value: 'low' },
+              { label: '中', value: 'medium' },
+              { label: '高', value: 'high' },
+            ]" />
+            <Select v-model="editEffort" small :options="[
+              { label: '工作量', value: '' },
+              { label: '简单', value: 'easy' },
+              { label: '中等', value: 'medium' },
+              { label: '困难', value: 'hard' },
+            ]" />
+            <Select v-model="editRecurrence" small :options="[
+              { label: '不重复', value: '' },
+              { label: '每天', value: 'daily' },
+              { label: '每周', value: 'weekly' },
+              { label: '每月', value: 'monthly' },
+            ]" />
+            <button @click="cancelEdit" class="px-2.5 py-1.5 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">取消</button>
+            <button @click="saveEdit" class="px-3 py-1.5 bg-indigo-500 text-white rounded-lg text-xs font-medium hover:bg-indigo-600 transition-colors">保存</button>
+          </div>
         </div>
       </template>
     </div>

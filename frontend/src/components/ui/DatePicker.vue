@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
+const props = withDefaults(defineProps<{ small?: boolean }>(), {})
+
 const model = defineModel<string>()
 
 const open = ref(false)
@@ -88,7 +90,9 @@ function toggleOpen() {
 <template>
   <div class="relative">
     <button type="button" @click="toggleOpen"
-      class="px-3 py-2.5 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-gray-900 dark:text-gray-100 outline-none hover:border-indigo-400 transition-colors min-w-[110px] text-left whitespace-nowrap">
+      :class="props.small
+        ? 'px-2 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg text-xs bg-white dark:bg-gray-800 dark:text-gray-100 outline-none hover:border-indigo-400 transition-colors text-left whitespace-nowrap'
+        : 'px-3 py-2.5 border border-gray-200 dark:border-gray-800 rounded-lg text-sm bg-white dark:bg-gray-900 dark:text-gray-100 outline-none hover:border-indigo-400 transition-colors min-w-[110px] text-left whitespace-nowrap'">
       <span v-if="display" class="text-gray-800 dark:text-gray-200">{{ display }}</span>
       <span v-else class="text-gray-400 dark:text-gray-500">截止日期</span>
     </button>
