@@ -104,19 +104,21 @@ onMounted(() => {
     </div>
 
     <!-- Custom lists -->
-    <button
+    <div
       v-for="list in listStore.lists"
       :key="list.id"
       @click="selectList(list.id)"
-      class="w-full text-left px-3 py-2 rounded-xl text-sm font-medium mb-0.5 transition-colors group flex items-center justify-between"
+      class="w-full text-left px-3 py-2 rounded-xl text-sm font-medium mb-0.5 transition-colors group flex items-center justify-between cursor-pointer"
       :class="isActive(list.id) ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'"
+      role="button"
+      tabindex="0"
     >
-      <span class="flex items-center gap-2">
+      <span class="flex items-center gap-2 min-w-0">
         <span class="w-2.5 h-2.5 rounded-full shrink-0" :style="{ background: list.color }" />
-        <span v-if="list.user_id && list.user_id !== auth.userId" class="text-[10px] mr-0.5 opacity-60" title="共享列表">👥</span>
-        {{ list.name }}
+        <span v-if="list.user_id && list.user_id !== auth.userId" class="text-[10px] shrink-0 opacity-60" title="共享列表">👥</span>
+        <span class="truncate">{{ list.name }}</span>
       </span>
-      <div v-if="!list.user_id || list.user_id === auth.userId" class="flex items-center gap-0.5">
+      <div v-if="!list.user_id || list.user_id === auth.userId" class="flex items-center gap-0.5 shrink-0 ml-2">
         <button
           @click.stop="shareListId = list.id"
           class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-indigo-500 transition-all"
@@ -126,11 +128,11 @@ onMounted(() => {
         <button
           @click.stop="deleteList(list.id)"
           class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all"
-        >
+          title="删除列表">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
-    </button>
+    </div>
 
     <!-- Logout -->
     <div v-if="auth.hasPassword" class="mt-auto pt-4 border-t border-gray-100 dark:border-gray-800 mt-4">

@@ -86,10 +86,11 @@ function copyLink() {
           复制分享链接
         </button>
         <div>
-          <div class="text-xs text-gray-400 mb-2">成员 ({{ members.length }})</div>
+          <div class="text-xs text-gray-400 mb-2">{{ members.length }} 位成员</div>
           <div v-if="members.length === 0" class="text-xs text-gray-300 dark:text-gray-600">暂无成员</div>
-          <div v-for="m in members" :key="m.id" class="text-sm text-gray-600 dark:text-gray-400 py-1">
-            ID: {{ m.user_id }}
+          <div v-for="(m, i) in members" :key="m.id" class="text-sm text-gray-600 dark:text-gray-400 py-1 flex items-center gap-2">
+            <span class="w-[18px] h-[18px] rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 flex items-center justify-center">{{ i + 1 }}</span>
+            加入于 {{ new Date(m.joined_at).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }) }}
           </div>
         </div>
         <button @click="handleRevoke"

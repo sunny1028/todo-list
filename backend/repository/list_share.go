@@ -3,6 +3,7 @@ package repository
 import (
 	"crypto/rand"
 	"math/big"
+	"time"
 	"todo-list/backend/database"
 	"todo-list/backend/models"
 )
@@ -68,7 +69,7 @@ func AddShareMember(shareID uint, userID uint) error {
 	if count > 0 {
 		return nil
 	}
-	m := &models.ListShareMember{ShareID: shareID, UserID: userID}
+	m := &models.ListShareMember{ShareID: shareID, UserID: userID, JoinedAt: time.Now()}
 	return database.DB.Create(m).Error
 }
 
