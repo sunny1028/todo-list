@@ -72,6 +72,12 @@ func Setup(corsOrigin string) *gin.Engine {
 		protected.POST("/lists", handlers.CreateList)
 		protected.PUT("/lists/:id", handlers.UpdateList)
 		protected.DELETE("/lists/:id", handlers.DeleteList)
+
+		// List sharing
+		protected.POST("/lists/:id/share", handlers.CreateShare)
+		protected.GET("/lists/:id/share", handlers.GetShare)
+		protected.DELETE("/lists/:id/share", handlers.DeleteShare)
+		protected.POST("/lists/join", handlers.JoinList)
 	}
 
 	return r
