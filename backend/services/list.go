@@ -7,7 +7,21 @@ import (
 )
 
 func GetLists(userID uint) ([]models.List, error) {
-	return repository.FindAllLists(userID)
+	own, err := repository.FindAllLists(userID)
+	if err != nil {
+		return nil, err
+	}
+	sharedIDs := repository.FindSharedListIDs(userID)
+	if len(sharedIDs) > 0 {
+		shared, err := repository.FindListsByIDs(sharedIDs)
+		if err == nil {
+			for i := range shared {
+				shared[i].Permission = repository.GetUserPermission(shared[i].ID, userID)
+			}
+			own = append(own, shared...)
+		}
+	}
+	return own, nil
 }
 
 func GetList(userID uint, id uint) (*models.List, error) {

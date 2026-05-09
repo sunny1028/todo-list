@@ -8,7 +8,33 @@ import (
 	"todo-list/backend/repository"
 )
 
+func canAccessList(userID uint, listID uint) bool {
+	if listID == 0 {
+		return true
+	}
+	list, err := repository.FindListByID(userID, listID)
+	if err == nil && list.UserID == userID {
+		return true
+	}
+	perm := repository.GetUserPermission(listID, userID)
+	return perm != ""
+}
+
+func canWriteList(userID uint, listID uint) bool {
+	if listID == 0 {
+		return true
+	}
+	list, err := repository.FindListByID(userID, listID)
+	if err == nil && list.UserID == userID {
+		return true
+	}
+	return repository.GetUserPermission(listID, userID) == "edit"
+}
+
 func GetTodos(userID uint, listID uint, status, priority, tag, search string) ([]models.Todo, error) {
+	if !canAccessList(userID, listID) {
+		return nil, errors.New("access denied")
+	}
 	return repository.FindAll(userID, listID, status, priority, tag, search)
 }
 
@@ -150,6 +176,9 @@ func CreateTodo(todo *models.Todo) error {
 	if todo.Priority == "" {
 		todo.Priority = "medium"
 	}
+	if !canWriteList(todo.UserID, todo.ListID) {
+		return errors.New("access denied")
+	}
 	maxOrder, _ := repository.GetMaxSortOrder(todo.UserID)
 	todo.SortOrder = maxOrder + 1
 	return repository.Create(todo)
@@ -159,6 +188,9 @@ func UpdateTodo(userID uint, id uint, input *models.Todo) (*models.Todo, error) 
 	todo, err := repository.FindByID(userID, id)
 	if err != nil {
 		return nil, errors.New("todo not found")
+	}
+	if !canWriteList(userID, todo.ListID) {
+		return nil, errors.New("access denied")
 	}
 
 	todo.Title = input.Title
@@ -179,6 +211,9 @@ func ToggleTodo(userID uint, id uint) (*models.Todo, error) {
 	todo, err := repository.FindByID(userID, id)
 	if err != nil {
 		return nil, errors.New("todo not found")
+	}
+	if !canWriteList(userID, todo.ListID) {
+		return nil, errors.New("access denied")
 	}
 	todo.Completed = !todo.Completed
 	if err := repository.Update(todo); err != nil {
@@ -226,6 +261,16 @@ func ToggleTodo(userID uint, id uint) (*models.Todo, error) {
 }
 
 func ReorderTodos(userID uint, ids []uint) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	first, err := repository.FindByID(userID, ids[0])
+	if err != nil {
+		return err
+	}
+	if !canWriteList(userID, first.ListID) {
+		return errors.New("access denied")
+	}
 	for i, id := range ids {
 		if err := repository.UpdateOrder(userID, id, i); err != nil {
 			return err
@@ -239,6 +284,9 @@ func ArchiveTodo(userID uint, id uint) (*models.Todo, error) {
 	if err != nil {
 		return nil, errors.New("todo not found")
 	}
+	if !canWriteList(userID, todo.ListID) {
+		return nil, errors.New("access denied")
+	}
 	todo.Archived = true
 	if err := repository.Update(todo); err != nil {
 		return nil, err
@@ -251,6 +299,9 @@ func UnarchiveTodo(userID uint, id uint) (*models.Todo, error) {
 	if err != nil {
 		return nil, errors.New("todo not found")
 	}
+	if !canWriteList(userID, todo.ListID) {
+		return nil, errors.New("access denied")
+	}
 	todo.Archived = false
 	if err := repository.Update(todo); err != nil {
 		return nil, err
@@ -259,6 +310,13 @@ func UnarchiveTodo(userID uint, id uint) (*models.Todo, error) {
 }
 
 func DeleteTodo(userID uint, id uint) error {
+	todo, err := repository.FindByID(userID, id)
+	if err != nil {
+		return errors.New("todo not found")
+	}
+	if !canWriteList(userID, todo.ListID) {
+		return errors.New("access denied")
+	}
 	// Cascade-delete subtasks
 	database.DB.Where("user_id = ? AND todo_id = ?", userID, id).Delete(&models.Subtask{})
 	return repository.Delete(userID, id)

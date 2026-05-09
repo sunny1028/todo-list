@@ -28,6 +28,12 @@ func UpdateList(list *models.List) error {
 	return database.DB.Save(list).Error
 }
 
+func FindListsByIDs(ids []uint) ([]models.List, error) {
+	var lists []models.List
+	err := database.DB.Where("id IN ?", ids).Find(&lists).Error
+	return lists, err
+}
+
 func DeleteList(userID uint, id uint) error {
 	database.DB.Model(&models.Todo{}).Where("user_id = ? AND list_id = ?", userID, id).Update("list_id", 0)
 	return database.DB.Where("user_id = ?", userID).Delete(&models.List{}, id).Error
